@@ -1,0 +1,87 @@
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
+
+
+class Transformer(nn.Module):
+    def __init__(self, src_dim, tgt_dim, d_model, nhead, num_encoder_layers, num_decoder_layers, dropout):
+        super(Transformer, self).__init__()
+
+        # Layers
+        self.positional_encoding = PositionalEncoding(d_model=d_model, dropout=dropout, max_len=200)
+        # self.n_stage = 7
+        # self.embed = nn.Embedding(num_embeddings=self.n_stage, embedding_dim=1)
+        self.linear_src = nn.Linear(src_dim, d_model) # self.linear_src = nn.Linear(src_dim-1, d_model-1)
+        self.linear_tgt = nn.Linear(tgt_dim, d_model)
+        self.transformer = nn.Transformer(
+            d_model=d_model,
+            nhead=nhead,
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            dropout=dropout,
+            batch_first=True,
+        )
+        self.linear_out = nn.Linear(d_model, tgt_dim)
+
+    def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
+        # src, tgt size = (batch_size, sequence length)
+
+        # fc + positional encoding => output size = (batch_size, sequence length, d_model)
+        # stage_embed = self.embed(torch.mul(src[:, :, -1], self.n_stage-1).long())
+        src = self.linear_src(src) # self.linear_src(src[:, :, :-1])
+        # src = torch.concat((src, stage_embed), dim=2)
+
+        # src = self.positional_encoding(src)
+        tgt = self.linear_tgt(tgt)
+        tgt = self.positional_encoding(tgt)
+
+        transformer_out, encoder_weights, decoder_weights_sa, decoder_weights_mha = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
+        out = self.linear_out(transformer_out)
+
+        return out, encoder_weights, decoder_weights_sa, decoder_weights_mha
+
+    def get_tgt_mask(self, size) -> torch.tensor:
+        mask = torch.tril(torch.ones(size, size) == 1).float() # Lower triangular matrix
+        mask = mask.masked_fill(mask == 0, float('-inf')) # convert zeros(false) to -inf
+        mask = mask.masked_fill(mask == 1, float(0.0)) # convert ones to 0
+
+        return mask
+
+    def get_pad_mask(self, max_seq_len, data) -> torch.tensor:
+        pad_mask = torch.ones((len(data), max_seq_len))
+        for idx in range(len(data)):
+            # if data[idx].shape[0] > 20:
+            #     sample_seq_len = 20 - 1
+            # else:
+            sample_seq_len = data[idx].shape[0]-1
+            pad_mask[idx, :sample_seq_len] = torch.zeros(sample_seq_len)
+        pad_mask = pad_mask == 1
+        return pad_mask
+
+
+class PositionalEncoding(nn.Module):
+    def __init__(self, d_model, dropout, max_len):
+        super(PositionalEncoding, self).__init__()
+
+        # self.dropout = nn.Dropout(dropout)
+
+        # Encoding - From formula
+        pos_encoding = torch.zeros(max_len, d_model)
+        pos_encoding.requires_grad = False
+        positions_list = torch.arange(0, max_len, dtype=torch.float).view(-1, 1)
+        division_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0)) / d_model)
+
+        pos_encoding[:, 0::2] = torch.sin(positions_list * division_term)
+        pos_encoding[:, 1::2] = torch.cos(positions_list * division_term)
+
+        # saving buffer (same as parameter without gradients needed)
+        # optimizer가 업데이트하지 않고 하나의 layer로써 작동. GPU 연산 가능
+        self.pos_encoding = pos_encoding.unsqueeze(0).to("cuda")
+
+    def forward(self, token_embedding: torch.tensor) -> torch.tensor:
+        _, seq_len, _ = token_embedding.size()
+        pos_embed = self.pos_encoding[:, :seq_len, :]
+        out = token_embedding + pos_embed
+        # Residual connection + pos encoding
+        return out

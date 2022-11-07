@@ -1,0 +1,115 @@
+import os.path
+
+from envs import utils
+import pickle
+import copy
+import numpy as np
+from collections import Counter
+from scipy.special import softmax
+from visualization.attention_score_graph import plot_head_map
+
+
+def get_sample_data(args, sample_mean, sample_std):
+    A, B, b, c = utils.get_parameters(args)
+
+    _A = np.concatenate((A, np.zeros_like(A)), axis=1)
+    _B = np.concatenate((B, np.zeros_like(B)), axis=1)
+    _b = np.concatenate((b, np.zeros_like(b)), axis=1)
+    _c = np.tile(np.concatenate((c, np.zeros_like(c)), axis=0), (_A.shape[0], 1))
+
+    if type(sample_mean) is int:
+        rv_mean = [[sample_mean]] * (args.num_stages - 1)
+    else:
+        rv_mean = [sample_mean]*(args.num_stages-1)
+
+    if type(sample_std) is int:
+        rv_std = [[sample_std]] * (args.num_stages - 1)
+    else:
+        rv_std = [sample_std]*(args.num_stages-1)
+
+    if args.prob == "MertonsPortfolioOptimization":
+        initial_cut_constant = -100
+    else:
+        initial_cut_constant = 0
+
+    initial_cut = np.concatenate((np.zeros((1, A.shape[1]), dtype=float), np.array([[-1, initial_cut_constant, 1, 0, 0]], dtype=float)), axis=1)
+    feature_all = []
+    label_all = [initial_cut]*(args.num_stages - 1)
+    for stage in range(args.num_stages-1):
+        # features
+        if args.prob == "ProductionPlanning":
+            b_mean = np.array(rv_mean[stage] + [10]).reshape(_A.shape[0], 1)
+            b_std = np.array(rv_std[stage] + [0]).reshape(_A.shape[0], 1)
+            if args.feature_type == "objective_information":
+                feature = np.concatenate((_A, _B, _c, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+            else:
+                feature = np.concatenate((_A, _B, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+        elif args.prob == "EnergyPlanning":
+            b_mean = np.array(rv_mean[stage] + [0, 20]).reshape(_A.shape[0], 1)
+            b_std = np.array(rv_std[stage] + [0, 0]).reshape(_A.shape[0], 1)
+            if args.feature_type == "objective_information":
+                feature = np.concatenate((_A, _B, _c, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+            else:
+                feature = np.concatenate((_A, _B, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+        elif args.prob == "MertonsPortfolioOptimization":
+            _B[0][0] = rv_mean[stage][0]
+            _B[0][4] = rv_std[stage][0]
+            if args.feature_type == "objective_information":
+                feature = np.concatenate((_A, _B, _b, _c, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+            else:
+                feature = np.concatenate((_A, _B, _b, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+        else:
+            raise NotImplementedError
+        feature_all.append(feature)
+
+    return feature_all, label_all
+
+
+def get_max_cut_cnt():
+    load_path = 'D:/sddp_data/EnergyPlanning/stages_7/sample'
+    with open(os.path.join(load_path, "objective.pickle"), "rb") as f:
+        objective = pickle.load(f)
+
+    with open(os.path.join(load_path, "solution.pickle"), "rb") as f:
+        solution = pickle.load(f)
+
+    with open(os.path.join(load_path, "cut.pickle"), "rb") as f:
+        cut = pickle.load(f)
+
+    print(cut[0]['stage0']['gradient'] == cut[1]['stage0']['gradient'])
+    print(solution[0]['stage0'] == solution[1]['stage0'])
+    print(objective[0]['stage0'] == objective[1]['stage0'])
+
+    num_cuts = len(cut[-1]["stage0"]["gradient"])
+    num_max_cut = np.zeros(num_cuts)
+    num_max_cut_dict = {key: np.zeros((len(cut), num_cuts)) for key in list(cut[0].keys())[:-1]}
+
+    for it in range(len(cut)):
+        for stage in num_max_cut_dict.keys():
+            for sol in solution[:it+1]:
+                x = sol[stage][1]
+                max_val = -100
+                idx = -1
+                for i in range(len(cut[it][stage]['gradient'])):
+                    tmp = cut[it][stage]["gradient"][i] * x + cut[it][stage]["constant"][i]
+                    if tmp > max_val:
+                        idx = i
+                        max_val = tmp
+                num_max_cut_dict[stage][it, idx] += 1
+
+    # num_max_cut_dict['stage0'] = np.where(num_max_cut_dict['stage0'] == 0, -np.inf, num_max_cut_dict['stage0'])
+    # max_cut_cnts = softmax(num_max_cut_dict['stage0'], axis=1)
+    max_cut_cnts = num_max_cut_dict['stage0'] / np.sum(num_max_cut_dict['stage0'], axis=1, keepdims=True)
+
+    plot_head_map(mma=max_cut_cnts,
+                  source_labels=np.arange(max_cut_cnts.shape[1]),
+                  target_labels=np.arange(max_cut_cnts.shape[0]))
+
+    print(num_max_cut_dict['stage0'])
+
+    # with open("num_max_cut.pkl", "wb") as f:
+    #     pickle.dump(num_max_cut_dict, f)
+
+
+if __name__ == '__main__':
+    get_max_cut_cnt()
