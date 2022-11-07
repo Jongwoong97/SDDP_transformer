@@ -61,8 +61,10 @@ def preprocessing(data, args):
 
 def save_data(data, args):
     new_data = {}
-
-    list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode, "original"]
+    if args.mm == 'True':
+        list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode, "mm", "original"]
+    else:
+        list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode, "original"]
     save_path = os.path.join(*list_path)
     os.makedirs(save_path, exist_ok=True)
 

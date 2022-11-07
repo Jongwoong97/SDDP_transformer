@@ -65,10 +65,8 @@ def get_sample_data(args, sample_mean, sample_std):
     return feature_all, label_all
 
 
-def get_max_cut_cnt():
-    load_path = 'D:/sddp_data/EnergyPlanning/stages_7/sample'
-    with open(os.path.join(load_path, "objective.pickle"), "rb") as f:
-        objective = pickle.load(f)
+def get_max_cut_cnt_from_target(problem, n_stages, sample_type):
+    load_path = 'D:/sddp_data/{}/stages_{}/sample/{}'.format(problem, n_stages, sample_type)
 
     with open(os.path.join(load_path, "solution.pickle"), "rb") as f:
         solution = pickle.load(f)
@@ -78,10 +76,8 @@ def get_max_cut_cnt():
 
     print(cut[0]['stage0']['gradient'] == cut[1]['stage0']['gradient'])
     print(solution[0]['stage0'] == solution[1]['stage0'])
-    print(objective[0]['stage0'] == objective[1]['stage0'])
 
     num_cuts = len(cut[-1]["stage0"]["gradient"])
-    num_max_cut = np.zeros(num_cuts)
     num_max_cut_dict = {key: np.zeros((len(cut), num_cuts)) for key in list(cut[0].keys())[:-1]}
 
     for it in range(len(cut)):
@@ -101,15 +97,53 @@ def get_max_cut_cnt():
     # max_cut_cnts = softmax(num_max_cut_dict['stage0'], axis=1)
     max_cut_cnts = num_max_cut_dict['stage0'] / np.sum(num_max_cut_dict['stage0'], axis=1, keepdims=True)
 
+    initial_cut = np.zeros((1, max_cut_cnts.shape[1]))
+    initial_cut[0, 0] = 1
+    max_cut_cnts = np.concatenate((initial_cut, max_cut_cnts), axis=0)
     plot_head_map(mma=max_cut_cnts,
-                  source_labels=np.arange(max_cut_cnts.shape[1]),
-                  target_labels=np.arange(max_cut_cnts.shape[0]))
+                  source_labels=list(map(str, np.arange(max_cut_cnts.shape[1]))),
+                  target_labels=list(map(str, np.arange(max_cut_cnts.shape[0]))))
 
-    print(num_max_cut_dict['stage0'])
+    return max_cut_cnts
+
+
+def get_max_cut_cnt_from_prediction(pred_cuts, problem, n_stages):
+    load_path = 'D:/sddp_data/{}/stages_{}/sample/target'.format(problem, n_stages)
+
+    with open(os.path.join(load_path, "solution.pickle"), "rb") as f:
+        solution = pickle.load(f)
+
+    print(solution[0]['stage0'] == solution[1]['stage0'])
+
+    stage = 'stage0'
+
+    num_cuts = len(pred_cuts)
+    num_max_cut_dict = np.zeros((num_cuts, num_cuts))
+
+    for it in range(num_cuts):
+        for sol in solution[:it + 1]:
+            x = sol[stage][1]
+            max_val = -100
+            idx = -1
+            for i in range(it+1):
+                tmp = pred_cuts[i][1] * x / (-pred_cuts[i][-5]) + pred_cuts[i][-4] / (-pred_cuts[i][-5])
+                if tmp >= max_val:
+                    idx = i
+                    max_val = tmp
+            num_max_cut_dict[it, idx] += 1
+
+    max_cut_cnts = num_max_cut_dict / np.sum(num_max_cut_dict, axis=1, keepdims=True)
+
+    plot_head_map(mma=max_cut_cnts,
+                  source_labels=list(map(str, np.arange(max_cut_cnts.shape[1]))),
+                  target_labels=list(map(str, np.arange(max_cut_cnts.shape[0]))))
+
+    return max_cut_cnts
 
     # with open("num_max_cut.pkl", "wb") as f:
     #     pickle.dump(num_max_cut_dict, f)
 
 
 if __name__ == '__main__':
-    get_max_cut_cnt()
+    get_max_cut_cnt_from_target("EnergyPlanning", 7, "target")
+    get_max_cut_cnt_from_target("EnergyPlanning", 7, "predict")

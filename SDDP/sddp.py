@@ -47,7 +47,7 @@ class SDDP:
         # Scenario related
         self.scenario_tree_node = 5
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=False)
+                                                                  moment_matching=True)
         self.scenario = None
 
         # Forward pass related
@@ -79,16 +79,17 @@ class SDDP:
         # Scenario related
         self.scenario_tree_node = 5
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=False)
+                                                                  moment_matching=True)
         self.scenario = None
 
     def generate_scenarios(self, scenario_trees):
         scenario = [random.choice(nodes) for nodes in scenario_trees]
         return scenario
 
-    def one_iteration(self):
+    def one_iteration(self, do_backward_pass=True):
         upper_bound_params = self.forward_pass(n_samples=self.n_samples)
-        self.backward_pass(scenario_trees=self.scenario_trees)
+        if do_backward_pass:
+            self.backward_pass(scenario_trees=self.scenario_trees)
 
         optimality_gap, done, upper_bound = self.check_stopping_criterion(upper_bound_params=upper_bound_params,
                                                                           alpha=self.alpha)

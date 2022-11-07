@@ -7,9 +7,10 @@ import os
 # http://stackoverflow.com/questions/14391959/heatmap-in-matplotlib-with-pcolor
 def plot_head_map(mma, target_labels, source_labels):
 
-    sns.set_palette("pastel", 2)
+    # sns.set_palette("pastel", 2)
     ax = sns.heatmap(mma.T, annot=True, fmt=".2f", cmap="Reds", xticklabels=True, yticklabels=True)
-    ax.set(xlabel=target_labels, ylabel=source_labels)
+    ax.set_xticks(ticks=np.arange(mma.shape[0])+0.5, labels=target_labels)
+    ax.set_yticks(ticks=np.arange(mma.shape[1])+0.5, labels=source_labels)
     ax.xaxis.tick_top()
     ax.invert_yaxis()
     plt.xlim(0, mma.shape[0])

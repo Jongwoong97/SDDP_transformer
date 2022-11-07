@@ -11,7 +11,7 @@ from train import fit, predict
 from scheduler import CosineWarmupScheduler, CosineAnnealingWarmUpRestarts
 from visualization.cuts_graph import *
 from visualization.attention_score_graph import read_plot_alignment_matrices
-from utils.sample_data import get_sample_data
+from utils.sample_data import get_sample_data, get_max_cut_cnt_from_prediction
 
 import os
 import json
@@ -186,9 +186,15 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     # print(encoder_weights)
     # decoder_weights_mha = decoder_weights_mha[:10]
 
+    # with open(os.path.join('D:/sddp_data/EnergyPlanning/stages_7/sample/predict', "pred_cuts.pickle"), "wb") as fw:
+    #     pickle.dump(pred_cut_ex, fw)
+
     size_reduced = 22
 
-    # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced, :size_reduced], diagonal=-1)
+    get_max_cut_cnt_from_prediction(pred_cut_ex[0][:size_reduced, :size_reduced], problem='EnergyPlanning', n_stages=7)
+
+    # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced+1, :size_reduced], diagonal=-1)[1:size_reduced+1]
+    # decoder_weights_sa = decoder_weights_sa / torch.sum(decoder_weights_sa, dim=1, keepdim=True)
     decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
 
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
