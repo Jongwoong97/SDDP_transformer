@@ -77,13 +77,6 @@ def main(args):
 def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     splits = KFold(n_splits=args.kfold, shuffle=False)
     run_time = (datetime.now()).strftime("%Y%m%d_%H%M%S")
-    # train_data_length = (5 * len(x_raw_data)) // 6
-    #
-    # # dataset으로 만든 후, dataloader로 감싸기
-    # train_dataset = SddpDataset(x_raw_data[:train_data_length], y_raw_data[:train_data_length])
-    # val_dataset = SddpDataset(x_raw_data[train_data_length:], y_raw_data[train_data_length:])
-    # train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
-    # val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=False)
     dataset = SddpDataset(x_raw_data, y_raw_data)
     loss_fn = nn.MSELoss()
     for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(dataset)))):
@@ -134,9 +127,6 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
             inf_path = os.path.join(os.getcwd(), "scripts", "logs", "{}, Fold {}".format(args.load_model, fold))
             model.load_state_dict(torch.load(os.path.join(inf_path, "best_episode.ckpt")))
 
-        # test_start = len(x_raw_data)*(fold-1)//6
-        # test_end = len(x_raw_data)*fold // 6
-        # test_dataset = SddpDataset(x_raw_data[test_start:test_end], y_raw_data[test_start:test_end])
         test_dataset = SddpDataset(x_raw_data, y_raw_data)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
