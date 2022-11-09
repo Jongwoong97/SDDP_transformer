@@ -75,7 +75,7 @@ class MertonsPortfolioOptimizationStage(MertonsPortfolioOptimization):
 
         # Variables
         self.stock = cp.Variable(nonneg=True)
-        self.bond = cp.Variable(nonneg=True)  # stage 0에서는 self.initial_reservoir
+        self.bond = cp.Variable(nonneg=True)
         self.consumption = cp.Variable(nonneg=True)
         self.wealth = cp.Variable(nonneg=True)
 

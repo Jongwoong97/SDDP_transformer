@@ -3,15 +3,6 @@ import numpy as np
 import os
 
 
-def get_2dim_graph(x, y, x_label, y_label, title, save_path):
-    plt.plot(x, y)
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.title(title)
-    plt.savefig(os.path.join(save_path, f'{title}.png'))
-    plt.clf()
-
-
 def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     if args.prob == "ProductionPlanning":
         var_start_idx = 6
