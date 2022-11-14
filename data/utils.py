@@ -102,19 +102,19 @@ if __name__ == "__main__":
         EnergyPlanning: 80
         MertonsPortfolioOptimization: 60
     """
-    # except_outlier(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/original",
-    #                save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/original/except_outliers",
-    #                threshold=60)
+    except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm",
+                   save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers",
+                   threshold=30)
 
     """
         idx_delete_start, idx_delete_end:
         EnergyPlanning: 16, 24
         MertonsPortfolioOptimization: 18, 26
     """
-    delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_7/predict/original",
-                              save_path="D:/sddp_data/EnergyPlanning/stages_7/predict",
-                              idx_delete_start=16,
-                              idx_delete_end=24)
+    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/original",
+    #                           save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm",
+    #                           idx_delete_start=16,
+    #                           idx_delete_end=24)
 
     # delete_objective_function(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/original/except_outliers",
     #                           save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/except_outliers",

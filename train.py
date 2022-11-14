@@ -100,7 +100,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
         temp += y_input.size(0)
 
         # X, y_input, tgt_mask 인자로 전달하여 prediction 값 도출
-        y_pred = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
+        y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
         loss = loss_fn(y_pred, y_answer)
 
@@ -113,8 +113,10 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
         end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
         # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
+        y_pred_concat = np.concatenate((y_raw[0][0].reshape(1, y_raw[0][0].shape[0]), y_pred[0][:end_token_idx].detach().cpu().data.numpy()), axis=0)
+
         obj_target = get_pred_obj(y_raw[0], args)  # y_raw[0][:-1]
-        obj_pred = get_pred_obj(y_pred[0][:end_token_idx].detach().cpu().data.numpy(), args)
+        obj_pred = get_pred_obj(y_pred_concat, args)
         # print("obj_target: ", obj_target)
         # print("obj_pred: ", obj_pred)
         error_rate.append(get_error_rate(obj_pred, obj_target) / np.abs(obj_target))
@@ -152,7 +154,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
 
             temp += y_input.size(0)
 
-            y_pred = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
+            y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
             if (epoch % 20 == 0 or epoch == 1) and idx == 0:
                 get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
@@ -163,9 +165,11 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
             # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
+            y_pred_concat = np.concatenate((y_raw[0][0].reshape(1, y_raw[0][0].shape[0]), y_pred[0][:end_token_idx].detach().cpu().data.numpy()), axis=0)
+
             obj_target = get_pred_obj(y_raw[0], args)  # y_raw[0][:-1]
 
-            obj_pred = get_pred_obj(y_pred[0][:end_token_idx].detach().cpu().data.numpy(), args)
+            obj_pred = get_pred_obj(y_pred_concat, args)
             error_rate.append(get_error_rate(obj_pred, obj_target) / np.abs(obj_target))
 
             # obj_pred_true = get_pred_obj(y_pred[0][:end_token_idx_true].detach().cpu().data.numpy(),
@@ -314,12 +318,12 @@ def get_error_rate(pred, target):
 
 def get_end_token_idx(cuts_pred, device="cpu"):
     # categorical token
-    # end_token_idx = torch.argmax(cuts_pred[:, -1])
-    token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
-    try:
-        end_token_idx = (token_idx == 2).nonzero(as_tuple=False)[0][0]
-    except:
-        end_token_idx = torch.tensor(cuts_pred.shape[0] - 1)
+    end_token_idx = torch.argmax(cuts_pred[:, -1])
+    # token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
+    # try:
+    #     end_token_idx = (token_idx == 2).nonzero(as_tuple=False)[0][0]
+    # except:
+    #     end_token_idx = torch.tensor(cuts_pred.shape[0] - 1)
     return end_token_idx
 
 

@@ -41,12 +41,12 @@ def run_SDDP(args):
 
     # print(args.prob + ": SDDP algorithm start!")
     sddp = SDDP(prob_class=prob_class)
-    solution_list, objective_list, value_function_list, cut_list, time_list = [], [], [], [], []
+    solution_list, objective_list, value_function_list, cut_list, time_list, opt_gap_list, ub_list = [], [], [], [], [], [], []
 
     start = time.time()
     for idx in range(max_iter):
         temp = time.time()
-        opt_gap, done, _ = sddp.one_iteration(do_backward_pass=do_backward_pass)
+        opt_gap, done, upper_bound = sddp.one_iteration(do_backward_pass=do_backward_pass)
 
         if not do_backward_pass:
             for i in range(n_stages - 1):
@@ -58,6 +58,8 @@ def run_SDDP(args):
         # value_function_list.append(sddp.value_func)
         cut_list.append(copy.deepcopy(sddp.cuts))
         time_list.append(time.time() - temp)
+        opt_gap_list.append(opt_gap)
+        ub_list.append(upper_bound)
 
         # print(f"\nObjective value: {sddp.objective_value['stage0']}")
         # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
@@ -74,10 +76,10 @@ def run_SDDP(args):
             print("---" * 20)
             break
 
-    return solution_list, objective_list, cut_list, time_list, sddp
+    return solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list
 
 
-def save_sample_data(solution, obj_value, cut_list, time_list=None, sample_type='default'):
+def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list=None, ub_list=None, sample_type='default'):
     save_path = 'D:/sddp_data/EnergyPlanning/stages_7/sample/{}'.format(sample_type)
     os.makedirs(save_path, exist_ok=True)
 
@@ -93,6 +95,12 @@ def save_sample_data(solution, obj_value, cut_list, time_list=None, sample_type=
     if time_list:
         with open(os.path.join(save_path, "time.pickle"), "wb") as fw:
             pickle.dump(time_list, fw)
+    if opt_gap_list:
+        with open(os.path.join(save_path, "opt_gap.pickle"), "wb") as fw:
+            pickle.dump(opt_gap_list, fw)
+    if ub_list:
+        with open(os.path.join(save_path, "ub.pickle"), "wb") as fw:
+            pickle.dump(ub_list, fw)
 
 
 def main(process):
@@ -112,11 +120,11 @@ def main(process):
     print("------------test stages: {}-------------".format(args.num_stages))
     print("------------test episode: {}-------------".format(args.max_episode))
     for i in range(args.max_episode):
-        solution, obj_value, cut_list, time_list, sddp = run_SDDP(args)
+        solution, obj_value, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args)
 
         # save_sample_data(solution, obj_value, cut_list, args.sample_type)
         if len(obj_value) >= 100:
-            save_sample_data(solution, obj_value, cut_list, time_list, "long_iteration")
+            save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration")
 
 
         # if sddp is None:

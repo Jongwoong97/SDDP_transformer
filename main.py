@@ -47,8 +47,9 @@ def main(args):
 
     # 데이터 불러오기
     if args.mode == 'train':
-        save_path = os.path.join(args.save_path, "{}/stages_{}/train/except_outliers".format(args.prob,
-                                                                                             args.num_stages))  # /original/except_outliers
+        save_path = os.path.join(args.save_path, "{}/stages_{}/train/mm".format(args.prob, args.num_stages))  # /original/except_outliers
+        if args.outlier == 'except_outlier':
+            save_path = os.path.join(save_path, "except_outliers")
 
     elif args.mode == 'inference':
         save_path = os.path.join(args.save_path,
