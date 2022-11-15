@@ -47,7 +47,7 @@ class SDDP:
         # Scenario related
         self.scenario_tree_node = 5
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=True)
+                                                                  moment_matching=False)
         self.scenario = None
 
         # Forward pass related
@@ -79,7 +79,7 @@ class SDDP:
         # Scenario related
         self.scenario_tree_node = 5
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=True)
+                                                                  moment_matching=False)
         self.scenario = None
 
     def generate_scenarios(self, scenario_trees):

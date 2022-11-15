@@ -47,7 +47,6 @@ def run_SDDP(args):
     for idx in range(max_iter):
         temp = time.time()
         opt_gap, done, upper_bound = sddp.one_iteration(do_backward_pass=do_backward_pass)
-
         if not do_backward_pass:
             for i in range(n_stages - 1):
                 sddp.cuts["stage{}".format(i)]["gradient"].append(precuts[i][idx+1][1] / (-precuts[i][idx+1][-5]))
@@ -76,6 +75,8 @@ def run_SDDP(args):
             print("---" * 20)
             break
 
+        break
+
     return solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list
 
 
@@ -93,7 +94,7 @@ def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list
         pickle.dump(cut_list, fw)
 
     if time_list:
-        with open(os.path.join(save_path, "time.pickle"), "wb") as fw:
+        with open(os.path.join(save_path, "ti me.pickle"), "wb") as fw:
             pickle.dump(time_list, fw)
     if opt_gap_list:
         with open(os.path.join(save_path, "opt_gap.pickle"), "wb") as fw:

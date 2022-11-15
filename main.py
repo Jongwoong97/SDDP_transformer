@@ -47,7 +47,8 @@ def main(args):
 
     # 데이터 불러오기
     if args.mode == 'train':
-        save_path = os.path.join(args.save_path, "{}/stages_{}/train/mm".format(args.prob, args.num_stages))  # /original/except_outliers
+        save_path = os.path.join(args.save_path, "{}/stages_{}/train/mm".format(args.prob,
+                                                                                args.num_stages))  # /original/except_outliers
         if args.outlier == 'except_outlier':
             save_path = os.path.join(save_path, "except_outliers")
 
@@ -117,7 +118,8 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
 
 
 def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
-    inference_error_ratio = []
+    inference_error_ratio_pred = []
+    inference_error_ratio_sddp = []
     for fold in range(1, 7):
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
 
@@ -131,13 +133,18 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         test_dataset = SddpDataset(x_raw_data, y_raw_data)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
-        errors, pred_cut_ex, _, _, _ = predict(model=model,
-                                               dataloader=test_dataloader,
-                                               args=args,
-                                               cnt_cuts=1,
-                                               device=device)
-        print(f"Fold {fold}, errors mean: ", errors)
-        inference_error_ratio.append(errors)
+        errors_pred, errors_sddp, pred_cut_ex, _, _, _ = predict(model=model,
+                                                                 dataloader=test_dataloader,
+                                                                 args=args,
+                                                                 cnt_cuts=1,
+                                                                 device=device)
+        print(f"Fold {fold}, errors mean(sddp-transformer): ", errors_pred)
+
+        inference_error_ratio_pred.append(errors_pred)
+
+        print(f"Fold {fold}, errors mean(sddp): ", errors_sddp)
+
+        inference_error_ratio_sddp.append(errors_sddp)
 
         if args.prob == "ProductionPlanning":
             num_var = 3
@@ -153,7 +160,8 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
                           var_idx=i,
                           args=args,
                           save_path=inf_path)
-    print("mean error ratio: ", np.mean(inference_error_ratio))
+    print("mean error ratio(sddp-transformer): ", np.mean(inference_error_ratio_pred))
+    print("mean error ratio(sddp): ", np.mean(inference_error_ratio_sddp))
 
 
 def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, fold):
