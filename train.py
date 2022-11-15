@@ -4,6 +4,7 @@ import os
 from envs.utils import get_parameters
 from config import *
 import cvxpy as cp
+from run_MSP import MSP_EP
 
 from visualization.cuts_graph import get_cut_graph
 
@@ -225,15 +226,19 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
 def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
     model.eval()
     pred_cut_ex = []
-    errors = []
+    errors_pred = []
+    errors_sddp = []
     with torch.no_grad():
         for idx, batch in enumerate(dataloader):
             X, y = batch[0], batch[1]
-            error, pred_cut, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict_one_batch(X, y, idx, model, args, cnt_cuts, device)
-            errors += error
+            error_pred, error_sddp, pred_cut, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict_one_batch(X, y, idx, model, args, cnt_cuts, device)
+            errors_pred += error_pred
+            errors_sddp += error_sddp
             if idx == 0:
                 pred_cut_ex = pred_cut
-    return np.mean(errors), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
+            elif idx == 30:
+                break
+    return np.mean(errors_pred), np.mean(errors_sddp), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
 
 
 def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
@@ -254,16 +259,24 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     else:
         pred_cut_ex = []
 
-    errors = []
+    errors_pred = []
+    errors_sddp = []
     for d in range(0, X.shape[0], 6):
+        if args.prob == "EnergyPlanning":
+            x_curr = X[d].detach().cpu().data.numpy()
+            _, optVal = MSP_EP(stageNum=args.num_stages, scenario_node=3, paramdict={'mean': x_curr[0, 16], 'scale': x_curr[0, 17]}, mm=True)
+        else:
+            raise NotImplementedError
+
         end_token_idx = get_end_token_idx(y_input[d], device) + 1
         obj_target = get_pred_obj(y[d].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
         obj_pred = get_pred_obj(y_input[d][:end_token_idx].detach().cpu().data.numpy(), args)
-        print("obj_target", obj_target)
-        print("obj_pred", obj_pred)
-        errors.append(get_error_rate(obj_pred, obj_target) / np.abs(obj_target))
-    return errors, pred_cut_ex, encoder_weights[end_token_idx-2][-1][0], decoder_weights_sa[end_token_idx-2][-1][0], decoder_weights_mha[end_token_idx-2][-1][0]
+        # print("obj_target", obj_target)
+        # print("obj_pred", obj_pred)
+        errors_pred.append(get_error_rate(obj_pred, optVal) / np.abs(optVal))
+        errors_sddp.append(get_error_rate(obj_target, optVal) / np.abs(optVal))
+    return errors_pred, errors_sddp, pred_cut_ex, encoder_weights[end_token_idx-2][-1][0], decoder_weights_sa[end_token_idx-2][-1][0], decoder_weights_mha[end_token_idx-2][-1][0]
 
 
 def get_pred_obj(cuts, args):
