@@ -103,7 +103,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
         # X, y_input, tgt_mask 인자로 전달하여 prediction 값 도출
         y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
-        loss = loss_fn(y_pred, y_answer)
+        loss = loss_fn[0](y_pred[:, :, :-3], y_answer[:, :, :-1]) + loss_fn[1](y_pred[:, :, -3:].view(-1, 3), y_answer[:, :, -1].flatten().to(torch.long))
 
         optimizer.zero_grad()
         loss.backward()
@@ -114,9 +114,9 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
         end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
         # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
-        y_pred_concat = np.concatenate((y_raw[0][0].reshape(1, y_raw[0][0].shape[0]), y_pred[0][:end_token_idx].detach().cpu().data.numpy()), axis=0)
+        y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-3].detach().cpu().data.numpy()), axis=0)
 
-        obj_target = get_pred_obj(y_raw[0], args)  # y_raw[0][:-1]
+        obj_target = get_pred_obj(y_raw[0][:, :-1], args)  # y_raw[0][:-1]
         obj_pred = get_pred_obj(y_pred_concat, args)
         # print("obj_target: ", obj_target)
         # print("obj_pred: ", obj_pred)
@@ -160,15 +160,15 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             if (epoch % 20 == 0 or epoch == 1) and idx == 0:
                 get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
 
-            loss = loss_fn(y_pred, y_answer)
+            loss = loss_fn[0](y_pred[:, :, :-3], y_answer[:, :, :-1]) + loss_fn[1](y_pred[:, :, -3:].view(-1, 3), y_answer[:, :, -1].flatten().to(torch.long))
             total_loss += loss.detach().item()
 
             end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
             # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
-            y_pred_concat = np.concatenate((y_raw[0][0].reshape(1, y_raw[0][0].shape[0]), y_pred[0][:end_token_idx].detach().cpu().data.numpy()), axis=0)
+            y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-3].detach().cpu().data.numpy()), axis=0)
 
-            obj_target = get_pred_obj(y_raw[0], args)  # y_raw[0][:-1]
+            obj_target = get_pred_obj(y_raw[0][:, :-1], args)  # y_raw[0][:-1]
 
             obj_pred = get_pred_obj(y_pred_concat, args)
             error_rate.append(get_error_rate(obj_pred, obj_target) / np.abs(obj_target))
@@ -236,7 +236,7 @@ def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
             errors_sddp += error_sddp
             if idx == 0:
                 pred_cut_ex = pred_cut
-            elif idx == 30:
+            elif idx == 10:
                 break
     return np.mean(errors_pred), np.mean(errors_sddp), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
 
@@ -296,8 +296,8 @@ def get_pred_obj(cuts, args):
     # x = cp.Variable(shape=A.shape[1], nonneg=True)
     x = cp.Variable(shape=A.shape[1])
 
-    A = np.concatenate((A, cuts[:, :-4]), axis=0)  # -1
-    b = np.concatenate((b, cuts[:, -4].reshape(cuts.shape[0], 1)), axis=0)
+    A = np.concatenate((A, cuts[:, :-1]), axis=0)  # -1
+    b = np.concatenate((b, cuts[:, -1].reshape(cuts.shape[0], 1)), axis=0)
     c = np.concatenate((c, np.array([1])), axis=0)
 
     constraints = [A[:num_Equality] @ x + np.squeeze(b[:num_Equality]) == 0] + [A[num_Equality:] @ x + np.squeeze(b[num_Equality:]) <= 0]
@@ -361,7 +361,8 @@ def get_pred_cuts(X, y, cnt_cuts, model, device, max_length=100):
         encoder_weights.append(encoder_weight)
         decoder_weights_sa.append(decoder_weight_sa)
         decoder_weights_mha.append(decoder_weight_mha)
-        next_item = torch.unsqueeze(y_pred[:, -1], 1)
+        logit_to_label = torch.argmax(y_pred[:, -1, -3:], dim=1, keepdim=True)
+        next_item = torch.unsqueeze(torch.concat((y_pred[:, -1, :-3], logit_to_label), dim=1), 1)
 
         # concatenate previous input with predicted cut
         y_input = torch.concat((y_input, next_item), dim=1)

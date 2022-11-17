@@ -1,3 +1,5 @@
+import pickle
+
 from matplotlib import pyplot as plt
 import numpy as np
 import os
@@ -107,3 +109,34 @@ def get_cut_graph_stage0(target_cut, pred_cut, var_idx, args, save_path):
 
     plt.savefig(os.path.join(save_path, "stage0_cuts_{}.png".format(var_idx)))
     plt.clf()
+
+
+def get_sample_scenario_cuts_graph(cuts, pred_cut):
+    x = np.arange(-500, 500)
+    plt.plot()
+    plt.xlabel("x")
+    plt.ylabel("l(x)")
+    plt.title("sampled cuts")
+    plt.grid(color="gray", alpha=0.2, linestyle="--")
+
+
+    for i in range(cuts.shape[0]):
+        if i == 0:
+            plt.plot(x, cuts[i][1] * x + cuts[i][-1], label="sampled cut", color='gold')
+        else:
+            plt.plot(x, cuts[i][1] * x + cuts[i][-1], color='gold')
+
+    avg_cut = np.mean(cuts, axis=0)
+    plt.plot(x, avg_cut[1]*x + avg_cut[-1], label="mean", color='red')
+    plt.plot(x, -pred_cut[1]*x/pred_cut[-5] + -pred_cut[-4]/pred_cut[-5], label="prediction", color='blue')
+    plt.legend()
+
+    plt.show()
+
+
+if __name__ == '__main__':
+    load_path = "D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/cuts.pickle"
+    with open(load_path, 'rb') as fr:
+        cuts = pickle.load(fr)
+
+    get_sample_scenario_cuts_graph(cuts)

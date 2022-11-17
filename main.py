@@ -38,7 +38,7 @@ def main(args):
         tgt_dim = 14  # 11
     elif args.prob == "EnergyPlanning":
         src_dim = 19  # 27
-        tgt_dim = 9
+        tgt_dim = 7  # 9
     elif args.prob == "MertonsPortfolioOptimization":
         src_dim = 19  # 27
         tgt_dim = 9
@@ -47,10 +47,15 @@ def main(args):
 
     # 데이터 불러오기
     if args.mode == 'train':
-        save_path = os.path.join(args.save_path, "{}/stages_{}/train/mm".format(args.prob,
+        save_path = os.path.join(args.save_path, "{}/stages_{}/train".format(args.prob,
                                                                                 args.num_stages))  # /original/except_outliers
         if args.outlier == 'except_outlier':
             save_path = os.path.join(save_path, "except_outliers")
+
+        if args.loss == 'MSE_CE':
+            save_path = os.path.join(save_path, "change_loss")
+        else:
+            raise ValueError
 
     elif args.mode == 'inference':
         save_path = os.path.join(args.save_path,
@@ -80,7 +85,7 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     splits = KFold(n_splits=args.kfold, shuffle=False)
     run_time = (datetime.now()).strftime("%Y%m%d_%H%M%S")
     dataset = SddpDataset(x_raw_data, y_raw_data)
-    loss_fn = nn.MSELoss()
+    loss_fn = (nn.MSELoss(), nn.CrossEntropyLoss())
     for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(dataset)))):
         train_sampler = SubsetSequentialSampler(train_idx)
         val_sampler = SubsetSequentialSampler(val_idx)
@@ -177,16 +182,24 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     test_dataset = SddpDataset(x_raw_data, y_raw_data)
     test_dataloader = DataLoader(test_dataset, batch_size=args.num_stages)
 
-    errors, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
-                                                                                            dataloader=test_dataloader,
-                                                                                            args=args,
-                                                                                            cnt_cuts=1,
-                                                                                            device=device)
+    _, _, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
+                                                                                          dataloader=test_dataloader,
+                                                                                          args=args,
+                                                                                          cnt_cuts=1,
+                                                                                          device=device)
+
+    # with open("D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/cuts.pickle", 'rb') as fr:
+    #     target_cuts = pickle.load(fr)
+    #
+    # get_sample_scenario_cuts_graph(target_cuts, pred_cut_ex[4][1])
+
     # print(encoder_weights)
     # decoder_weights_mha = decoder_weights_mha[:10]
 
     # with open(os.path.join('D:/sddp_data/EnergyPlanning/stages_7/sample/predict', "pred_cuts.pickle"), "wb") as fw:
     #     pickle.dump(pred_cut_ex, fw)
+
+    print(pred_cut_ex.shape)
 
     size_reduced = 22
 
@@ -199,8 +212,6 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
                                  target_labels=np.arange(decoder_weights_sa.shape[0]),
                                  alpha=decoder_weights_sa)
-
-    print(f"Fold {fold}, errors mean: ", errors)
 
     if args.prob == "ProductionPlanning":
         num_var = 3
@@ -267,5 +278,6 @@ if __name__ == "__main__":
                         choices=['objective_information', 'no_objective_information'])
     parser.add_argument('--outlier', type=str, default='not_except_outlier',
                         choices=['not_except_outlier', 'except_outlier'])
-
+    parser.add_argument('--loss', type=str, default='MSE',
+                        choices=['MSE', 'MSE_CE'])
     main(parser.parse_args())

@@ -13,7 +13,7 @@ class Transformer(nn.Module):
         # self.n_stage = 7
         # self.embed = nn.Embedding(num_embeddings=self.n_stage, embedding_dim=1)
         self.linear_src = nn.Linear(src_dim, d_model) # self.linear_src = nn.Linear(src_dim-1, d_model-1)
-        self.linear_tgt = nn.Linear(tgt_dim, d_model)
+        self.linear_tgt = nn.Linear(tgt_dim + 2, d_model)
         self.transformer = nn.Transformer(
             d_model=d_model,
             nhead=nhead,
@@ -22,13 +22,15 @@ class Transformer(nn.Module):
             dropout=dropout,
             batch_first=True,
         )
-        self.linear_out = nn.Linear(d_model, tgt_dim)
+        self.linear_out = nn.Linear(d_model, tgt_dim + 2)
 
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         # src, tgt size = (batch_size, sequence length)
 
         # fc + positional encoding => output size = (batch_size, sequence length, d_model)
         # stage_embed = self.embed(torch.mul(src[:, :, -1], self.n_stage-1).long())
+        token_encoding = F.one_hot(tgt[:, :, -1].to(torch.long), num_classes=3)
+        tgt = torch.concat((tgt[:, :, :-1], token_encoding), dim=2)
         src = self.linear_src(src) # self.linear_src(src[:, :, :-1])
         # src = torch.concat((src, stage_embed), dim=2)
 
