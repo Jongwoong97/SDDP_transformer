@@ -118,22 +118,26 @@ def preprocess_sample_scenario_cuts(load_path, save_path):
     with open(os.path.join(load_path, "labels.pickle"), "rb") as fr:
         data_label = pickle.load(fr)
 
-    new_data = [data_label[i][1][:-3] for i in range(4, len(data_label), 6)]
+    cuts = {}
+    for j in range(6):
+        new_data = [data_label[i][1][:-3] for i in range(j, len(data_label), 6)]
+        cuts[f'stage{j}'] = np.array(new_data)
 
-    with open(os.path.join(save_path, "cuts.pickle"), "wb") as fw:
-        pickle.dump(np.array(new_data), fw)
+    with open(os.path.join(save_path, f"cuts.pickle"), "wb") as fw:
+        pickle.dump(cuts, fw)
+
 
 
 if __name__ == "__main__":
     """
         Threshold:
         EnergyPlanning: 7~80
-        MertonsPortfolioOptimization: 60
+        MertonsPortfolioOptimization: 40
     """
-    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm",
-    #                save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers",
-    #                low=7,
-    #                high=80)
+    # except_outlier(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/train",
+    #                save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/train/except_outliers",
+    #                low=0,
+    #                high=40)
 
     """
         idx_delete_start, idx_delete_end:
@@ -153,5 +157,5 @@ if __name__ == "__main__":
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario")
 
-    change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/except_outliers",
-                            save_path="D:/sddp_data/EnergyPlanning/stages_7/train/except_outliers/change_loss")
+    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict",
+                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/change_loss")

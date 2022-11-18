@@ -6,6 +6,7 @@ import seaborn as sns
 import numpy as np
 import os
 
+
 def get_2dim_graph(x, y, x_label, y_label, save_path=''):
     sns.lineplot(x, y)
     # plt.plot(x, y)

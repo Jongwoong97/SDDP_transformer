@@ -41,7 +41,7 @@ def main(args):
         tgt_dim = 7  # 9
     elif args.prob == "MertonsPortfolioOptimization":
         src_dim = 19  # 27
-        tgt_dim = 9
+        tgt_dim = 7 # 7
     else:
         raise NotImplementedError
 
@@ -61,8 +61,13 @@ def main(args):
         save_path = os.path.join(args.save_path,
                                  "{}/stages_{}/predict".format(args.prob, args.num_stages))  # /original/except_outliers
 
+        if args.loss == 'MSE_CE':
+            save_path = os.path.join(save_path, "change_loss")
+
     if args.mode == 'inference_one_sample':
-        x_raw_data, y_raw_data = get_sample_data(args, 20, 5)
+        mu = 25
+        sigma = 5
+        x_raw_data, y_raw_data = get_sample_data(args, mu, sigma)
     else:
         print(f"Data from {save_path}")
         with open(os.path.join(save_path, "features.pickle"), "rb") as fr:
@@ -76,7 +81,7 @@ def main(args):
     elif args.mode == 'inference':
         inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data)
     elif args.mode == 'inference_one_sample':
-        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 1)
+        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 3)
     else:
         raise ValueError
 
@@ -188,22 +193,20 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
                                                                                           cnt_cuts=1,
                                                                                           device=device)
 
-    # with open("D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/cuts.pickle", 'rb') as fr:
-    #     target_cuts = pickle.load(fr)
-    #
-    # get_sample_scenario_cuts_graph(target_cuts, pred_cut_ex[4][1])
+    with open("D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/1st_cut/cuts.pickle", 'rb') as fr:
+        target_cuts = pickle.load(fr)
+
+    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0, args)
 
     # print(encoder_weights)
     # decoder_weights_mha = decoder_weights_mha[:10]
 
-    # with open(os.path.join('D:/sddp_data/EnergyPlanning/stages_7/sample/predict', "pred_cuts.pickle"), "wb") as fw:
-    #     pickle.dump(pred_cut_ex, fw)
-
-    print(pred_cut_ex.shape)
+    with open(os.path.join('D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/mu25_sigma5', "labels.pickle"), "rb") as fr:
+        y_raw_data = pickle.load(fr)
 
     size_reduced = 22
 
-    get_max_cut_cnt_from_prediction(pred_cut_ex[0][:size_reduced, :size_reduced], problem='EnergyPlanning', n_stages=7)
+    # get_max_cut_cnt_from_prediction(pred_cut_ex[0][:size_reduced, :size_reduced], problem='EnergyPlanning', n_stages=7)
 
     # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced+1, :size_reduced], diagonal=-1)[1:size_reduced+1]
     # decoder_weights_sa = decoder_weights_sa / torch.sum(decoder_weights_sa, dim=1, keepdim=True)
@@ -212,6 +215,7 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
                                  target_labels=np.arange(decoder_weights_sa.shape[0]),
                                  alpha=decoder_weights_sa)
+
 
     if args.prob == "ProductionPlanning":
         num_var = 3

@@ -32,7 +32,8 @@ def get_sample_data(args, sample_mean, sample_std):
     else:
         initial_cut_constant = 0
 
-    initial_cut = np.concatenate((np.zeros((1, A.shape[1]), dtype=float), np.array([[-1, initial_cut_constant, 1, 0, 0]], dtype=float)), axis=1)
+    # initial_cut = np.concatenate((np.zeros((1, A.shape[1]), dtype=float), np.array([[-1, initial_cut_constant, 1, 0, 0]], dtype=float)), axis=1)
+    initial_cut = np.concatenate((np.zeros((1, A.shape[1]), dtype=float), np.array([[-1, initial_cut_constant, 0]], dtype=float)), axis=1)
     feature_all = []
     label_all = [initial_cut]*(args.num_stages - 1)
     for stage in range(args.num_stages-1):

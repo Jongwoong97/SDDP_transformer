@@ -4,7 +4,7 @@ import os
 from envs.utils import get_parameters
 from config import *
 import cvxpy as cp
-from run_MSP import MSP_EP
+from run_MSP import MSP_EP, MSP_FP
 
 from visualization.cuts_graph import get_cut_graph
 
@@ -74,7 +74,7 @@ def fit(model, optimizer, lr_scheduler, loss_fn, tgt_train_raw_data, tgt_eval_ra
 
         if (epoch + 1) % 5 == 0:
             torch.save(model.state_dict(), os.path.join(writer.logdir, "best_episode.ckpt"))
-
+    torch.save(model.state_dict(), os.path.join(writer.logdir, "best_episode.ckpt"))
 
 def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader, args, device="cpu"):
     model.train()
@@ -157,7 +157,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
 
             y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
-            if (epoch % 20 == 0 or epoch == 1) and idx == 0:
+            if (epoch % 20 == 0 or epoch == 1 or epoch == 193) and idx == 0:
                 get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
 
             loss = loss_fn[0](y_pred[:, :, :-3], y_answer[:, :, :-1]) + loss_fn[1](y_pred[:, :, -3:].view(-1, 3), y_answer[:, :, -1].flatten().to(torch.long))
@@ -186,7 +186,7 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
     if args.prob == "EnergyPlanning":
         max_length = 80
     elif args.prob == "MertonsPortfolioOptimization":
-        max_length = 60
+        max_length = 40
     else:
         max_length = 100
     y_inf, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
@@ -215,7 +215,7 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
     pred_cut_ex = get_all_stage_cuts(y_pred, args, device)
     for i in range(num_var):
         get_cut_graph(target_cut=y_raw[:args.num_stages - 1],
-                      pred_cut=pred_cut_ex,
+                      pred_cut=[pred_cut[:, :-2] for pred_cut in pred_cut_ex],
                       var_idx=i,
                       args=args,
                       save_path="D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/predict/{}".format(args.prob, args.num_stages, args.mode,
@@ -248,7 +248,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     if args.prob == "EnergyPlanning":
         max_length = 80
     elif args.prob == "MertonsPortfolioOptimization":
-        max_length = 60
+        max_length = 40
     else:
         max_length = 100
 
@@ -262,16 +262,20 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     errors_pred = []
     errors_sddp = []
     for d in range(0, X.shape[0], 6):
+        x_curr = X[d].detach().cpu().data.numpy()
         if args.prob == "EnergyPlanning":
-            x_curr = X[d].detach().cpu().data.numpy()
             _, optVal = MSP_EP(stageNum=args.num_stages, scenario_node=3, paramdict={'mean': x_curr[0, 16], 'scale': x_curr[0, 17]}, mm=True)
+        elif args.prob == "MertonsPortfolioOptimization":
+            sigma = x_curr[0, 12] * np.sqrt(args.num_stages-1)
+            mu = (args.num_stages-1)*x_curr[0, 8] + sigma**2 / 2
+            _, optVal = MSP_FP(stageNum=args.num_stages, scenario_node=3, paramdict={'mu': mu, 'sigma': sigma}, mm=True)
         else:
             raise NotImplementedError
 
         end_token_idx = get_end_token_idx(y_input[d], device) + 1
-        obj_target = get_pred_obj(y[d].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
+        obj_target = get_pred_obj(y[d][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
-        obj_pred = get_pred_obj(y_input[d][:end_token_idx].detach().cpu().data.numpy(), args)
+        obj_pred = get_pred_obj(y_input[d][:end_token_idx, :-1].detach().cpu().data.numpy(), args)
         # print("obj_target", obj_target)
         # print("obj_pred", obj_pred)
         errors_pred.append(get_error_rate(obj_pred, optVal) / np.abs(optVal))
@@ -331,12 +335,13 @@ def get_error_rate(pred, target):
 
 def get_end_token_idx(cuts_pred, device="cpu"):
     # categorical token
-    end_token_idx = torch.argmax(cuts_pred[:, -1])
-    # token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
-    # try:
-    #     end_token_idx = (token_idx == 2).nonzero(as_tuple=False)[0][0]
-    # except:
-    #     end_token_idx = torch.tensor(cuts_pred.shape[0] - 1)
+    # end_token_idx = torch.argmax(cuts_pred[:, -1])
+    token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
+    # token_idx = cuts_pred[:, -1]
+    try:
+        end_token_idx = (token_idx == 2).nonzero(as_tuple=False)[0][0]
+    except:
+        end_token_idx = torch.tensor(cuts_pred.shape[0] - 1)
     return end_token_idx
 
 

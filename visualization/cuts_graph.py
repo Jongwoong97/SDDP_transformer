@@ -6,57 +6,156 @@ import os
 
 
 def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
+    var_name = ""
     if args.prob == "ProductionPlanning":
         var_start_idx = 6
     elif args.prob == "EnergyPlanning":
         var_start_idx = 1
+        var_name = "reservoir final"
     elif args.prob == "MertonsPortfolioOptimization":
         var_start_idx = 0
+        if var_idx == 0:
+            var_name = "stock"
+        else:
+            var_name = "bond"
     else:
         raise NotImplementedError
 
     x = np.array(range(-500, 500))
 
-    fig, ax = plt.subplots(2, 3, figsize=(20, 15))
-
+    # fig, ax = plt.subplots(2, 3, figsize=(20, 15), sharex=True)
+    fig, ax = plt.subplots(3, 2, figsize=(14, 21), sharex='all', sharey='row')
     for stage in range((len(target_cut))//2):
-        ax[0, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[0, int(stage % ax.shape[-1])].set_title("stage{}_target_{}".format(stage, var_idx))
-        ax[1, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[1, int(stage % ax.shape[-1])].set_title("stage{}_pred_{}".format(stage, var_idx))
+        ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (prediction)".format(stage))
+        ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
+        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
 
         for i in range(len(target_cut[stage])):
-            ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-4], label=i)
+            if stage == 0:
+                ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
+            else:
+                ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
 
-        ax[0, int(stage % ax.shape[-1])].legend()
+        # ax[0, int(stage % ax.shape[-1])].legend()
 
         for i in range(len(pred_cut[stage])):
-            ax[1, int(stage % ax.shape[-1])].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-5]) + pred_cut[stage][i][-4] / (-pred_cut[stage][i][-5]), label=i)
-        ax[1, int(stage % ax.shape[-1])].legend()
+            ax[int(stage % ax.shape[0]), 0].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-3]) + pred_cut[stage][i][-2] / (-pred_cut[stage][i][-3]))
+        # ax[1, int(stage % ax.shape[-1])].legend()
 
+    # set labels
+    for axs in ax.flat:
+        axs.set_xlabel(f"x: {var_name}", size=12)
+        axs.set_ylabel("l(x): subgradient cut", size=12)
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for axs in ax.flat:
+        axs.label_outer()
+
+    ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
+    plt.tight_layout()
     plt.savefig(os.path.join(save_path, "stage0~2_cuts_{}.png".format(var_idx)))
     plt.clf()
 
-    fig, ax = plt.subplots(2, 3, figsize=(20, 15))
+    # for stage in range((len(target_cut))//2):
+    #     ax[0, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
+    #     ax[0, int(stage % ax.shape[-1])].set_title("stage{} (target)".format(stage))
+    #     ax[1, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
+    #     ax[1, int(stage % ax.shape[-1])].set_title("stage{} (prediction)".format(stage))
+    #
+    #     for i in range(len(target_cut[stage])):
+    #         if stage == (len(target_cut))//2 - 1:
+    #             ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
+    #         else:
+    #             ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
+    #
+    #     # ax[0, int(stage % ax.shape[-1])].legend()
+    #
+    #     for i in range(len(pred_cut[stage])):
+    #         ax[1, int(stage % ax.shape[-1])].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-3]) + pred_cut[stage][i][-2] / (-pred_cut[stage][i][-3]))
+    #     # ax[1, int(stage % ax.shape[-1])].legend()
+    #
+    # # set labels
+    # for axs in ax.flat:
+    #     axs.set_xlabel(f"x: {var_name}", size=12)
+    #     axs.set_ylabel("l(x): subgradient cut", size=12)
+    #
+    # # Hide x labels and tick labels for top plots and y ticks for right plots.
+    # for axs in ax.flat:
+    #     axs.label_outer()
+    #
+    # ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
+    # # plt.tight_layout()
+    # plt.savefig(os.path.join(save_path, "stage0~2_cuts_{}.png".format(var_idx)))
+    # plt.clf()
+
+    fig, ax = plt.subplots(3, 2, figsize=(14, 21), sharex='all', sharey='row')
 
     for stage in range((len(target_cut))//2, len(target_cut)):
-        ax[0, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[0, int(stage % ax.shape[-1])].set_title("stage{}_target_{}".format(stage, var_idx))
-        ax[1, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[1, int(stage % ax.shape[-1])].set_title("stage{}_pred_{}".format(stage, var_idx))
+        ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (prediction)".format(stage))
+        ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
+        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
 
         for i in range(len(target_cut[stage])):
-            ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-4], label=i)
-
-        ax[0, int(stage % ax.shape[-1])].legend()
+            if stage == (len(target_cut))//2:
+                ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
+            else:
+                ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
+        # ax[0, int(stage % ax.shape[-1])].legend()
 
         for i in range(len(pred_cut[stage])):
-            ax[1, int(stage % ax.shape[-1])].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-5]) + pred_cut[stage][i][-4] / (-pred_cut[stage][i][-5]), label=i)
+            ax[int(stage % ax.shape[0]), 0].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-3]) + pred_cut[stage][i][-2] / (-pred_cut[stage][i][-3]))
 
-        ax[1, int(stage % ax.shape[-1])].legend()
+        # ax[1, int(stage % ax.shape[-1])].legend()
 
+    # set labels
+    for axs in ax.flat:
+        axs.set_xlabel(f"x: {var_name}", size=12)
+        axs.set_ylabel("l(x): subgradient cut", size=12)
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    for axs in ax.flat:
+        axs.label_outer()
+
+    ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
+    plt.tight_layout()
     plt.savefig(os.path.join(save_path, "stage3~5_cuts_{}.png".format(var_idx)))
     plt.clf()
+
+    # fig, ax = plt.subplots(2, 3, figsize=(20, 15), sharex=True)
+    #
+    # for stage in range((len(target_cut))//2, len(target_cut)):
+    #     ax[0, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
+    #     ax[0, int(stage % ax.shape[-1])].set_title("stage{} (target)".format(stage))
+    #     ax[1, int(stage % ax.shape[-1])].grid(color="gray", alpha=0.5, linestyle="--")
+    #     ax[1, int(stage % ax.shape[-1])].set_title("stage{} (prediction)".format(stage))
+    #
+    #     for i in range(len(target_cut[stage])):
+    #         if stage == len(target_cut) - 1:
+    #             ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
+    #         else:
+    #             ax[0, int(stage % ax.shape[-1])].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
+    #     # ax[0, int(stage % ax.shape[-1])].legend()
+    #
+    #     for i in range(len(pred_cut[stage])):
+    #         ax[1, int(stage % ax.shape[-1])].plot(x, pred_cut[stage][i][var_start_idx+var_idx] * x / (-pred_cut[stage][i][-3]) + pred_cut[stage][i][-2] / (-pred_cut[stage][i][-3]))
+    #
+    #     # ax[1, int(stage % ax.shape[-1])].legend()
+    #
+    # # set labels
+    # for axs in ax.flat:
+    #     axs.set_xlabel(f"x: {var_name}", size=12)
+    #     axs.set_ylabel("l(x): subgradient cut", size=12)
+    #
+    # # Hide x labels and tick labels for top plots and y ticks for right plots.
+    # for axs in ax.flat:
+    #     axs.label_outer()
+    #
+    # ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
+    # # plt.tight_layout()
+    # plt.savefig(os.path.join(save_path, "stage3~5_cuts_{}.png".format(var_idx)))
+    # plt.clf()
 
 
 def get_cut_graph_stage0(target_cut, pred_cut, var_idx, args, save_path):
@@ -111,27 +210,73 @@ def get_cut_graph_stage0(target_cut, pred_cut, var_idx, args, save_path):
     plt.clf()
 
 
-def get_sample_scenario_cuts_graph(cuts, pred_cut):
-    x = np.arange(-500, 500)
-    plt.plot()
-    plt.xlabel("x")
-    plt.ylabel("l(x)")
-    plt.title("sampled cuts")
-    plt.grid(color="gray", alpha=0.2, linestyle="--")
-
-
-    for i in range(cuts.shape[0]):
-        if i == 0:
-            plt.plot(x, cuts[i][1] * x + cuts[i][-1], label="sampled cut", color='gold')
+def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
+    var_name = ""
+    if args.prob == "ProductionPlanning":
+        var_start_idx = 6
+    elif args.prob == "EnergyPlanning":
+        var_start_idx = 1
+        var_name = "reservoir final"
+    elif args.prob == "MertonsPortfolioOptimization":
+        var_start_idx = 0
+        if var_idx == 0:
+            var_name = "stock"
         else:
-            plt.plot(x, cuts[i][1] * x + cuts[i][-1], color='gold')
+            var_name = "bond"
+    else:
+        raise NotImplementedError
 
-    avg_cut = np.mean(cuts, axis=0)
-    plt.plot(x, avg_cut[1]*x + avg_cut[-1], label="mean", color='red')
-    plt.plot(x, -pred_cut[1]*x/pred_cut[-5] + -pred_cut[-4]/pred_cut[-5], label="prediction", color='blue')
-    plt.legend()
+    x = np.arange(-500, 500)
 
+    fig, ax = plt.subplots(2, 3, figsize=(21, 14))
+    for stage in range(len(cuts)):
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].grid(color="gray", alpha=0.5, linestyle="--")
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].set_title("stage{}".format(stage))
+
+        for i in range(cuts[f"stage{stage}"].shape[0]):
+            if i == 0:
+                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][1] * x + cuts[f"stage{stage}"][i][-1], label="cut sample", color='khaki')
+            else:
+                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][1] * x + cuts[f"stage{stage}"][i][-1], color='khaki')
+
+        avg_cut = np.mean(cuts[f"stage{stage}"], axis=0)
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, avg_cut[1] * x + avg_cut[-1], label="cut mean", color='blue')
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, -pred_cut[f"stage{stage}"][1] * x / pred_cut[f"stage{stage}"][-3] + -pred_cut[f"stage{stage}"][-2] / pred_cut[f"stage{stage}"][-3], label="cut prediction", color='red')
+
+    # set labels
+    for axs in ax[1]:
+        axs.set_xlabel(f"x: {var_name}", size=12)
+    for axs in ax[:, 0]:
+        axs.set_ylabel("l(x): subgradient cut", size=12)
+
+    #
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    # for axs in ax.flat:
+    #     axs.label_outer()
+
+    ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
+    # plt.tight_layout()
     plt.show()
+
+    # plt.plot()
+    # plt.xlabel("x")
+    # plt.ylabel("l(x)")
+    # plt.title("sampled cuts")
+    # plt.grid(color="gray", alpha=0.2, linestyle="--")
+    #
+    #
+    # for i in range(cuts.shape[0]):
+    #     if i == 0:
+    #         plt.plot(x, cuts[i][1] * x + cuts[i][-1], label="sampled cut", color='gold')
+    #     else:
+    #         plt.plot(x, cuts[i][1] * x + cuts[i][-1], color='gold')
+    #
+    # avg_cut = np.mean(cuts, axis=0)
+    # plt.plot(x, avg_cut[1]*x + avg_cut[-1], label="mean", color='red')
+    # plt.plot(x, -pred_cut[1]*x/pred_cut[-3] + -pred_cut[-2]/pred_cut[-3], label="prediction", color='blue')
+    # plt.legend()
+    #
+    # plt.show()
 
 
 if __name__ == '__main__':

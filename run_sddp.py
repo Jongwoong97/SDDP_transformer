@@ -75,7 +75,8 @@ def run_SDDP(args):
             print("---" * 20)
             break
 
-        break
+        # if args.save_mode == 'sample_scenario':
+        #     break
 
     return solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list
 
@@ -139,8 +140,8 @@ def main(process):
 
 # SDDP solution
 if __name__ == '__main__':
-    with Pool(4) as p:
-        p.map(main, [1, 2, 3, 4])
+    # with Pool(4) as p:
+    #     p.map(main, [1, 2, 3, 4])
 
-    # main(0)
+    main(0)
 
