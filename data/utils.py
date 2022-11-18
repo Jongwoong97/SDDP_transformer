@@ -154,8 +154,8 @@ if __name__ == "__main__":
     #                           idx_delete_start=18,
     #                           idx_delete_end=26)
 
-    # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario",
-    #                                 save_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario")
+    preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
+                                    save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
 
-    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict",
-                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/change_loss")
+    # change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict",
+    #                         save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/change_loss")

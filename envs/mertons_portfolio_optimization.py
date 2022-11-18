@@ -31,7 +31,7 @@ class MertonsPortfolioOptimization(object):
         self.volatility_high = volatility_high
         self.delta_t = 1 / (n_stages-1)
         self.prev_solution = np.array([0, 100/(1+self.risk_free_rate_of_bond * self.delta_t)])
-        self.change_param = True
+        self.change_param = False
 
         self.stage = MertonsPortfolioOptimizationStage
 

@@ -111,10 +111,13 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
 
         total_loss += loss.detach().item()
 
+        logit_to_label = torch.argmax(y_pred[:, :, -3:], dim=2, keepdim=True)
+        y_pred = torch.concat((y_pred[:, :, :-3], logit_to_label), dim=2)
+
         end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
         # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
-        y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-3].detach().cpu().data.numpy()), axis=0)
+        y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-1].detach().cpu().data.numpy()), axis=0)
 
         obj_target = get_pred_obj(y_raw[0][:, :-1], args)  # y_raw[0][:-1]
         obj_pred = get_pred_obj(y_pred_concat, args)
@@ -157,16 +160,19 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
 
             y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
-            if (epoch % 20 == 0 or epoch == 1 or epoch == 193) and idx == 0:
-                get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
-
             loss = loss_fn[0](y_pred[:, :, :-3], y_answer[:, :, :-1]) + loss_fn[1](y_pred[:, :, -3:].view(-1, 3), y_answer[:, :, -1].flatten().to(torch.long))
             total_loss += loss.detach().item()
+
+            logit_to_label = torch.argmax(y_pred[:, :, -3:], dim=2, keepdim=True)
+            y_pred = torch.concat((y_pred[:, :, :-3], logit_to_label), dim=2)
+
+            if (epoch % 10 == 0 or epoch == 1 or epoch == 97) and idx == 0:
+                get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
 
             end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
             # end_token_idx_true = y_raw[0].shape[0]  # y_raw[0].shape[0]-1
 
-            y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-3].detach().cpu().data.numpy()), axis=0)
+            y_pred_concat = np.concatenate((y_raw[0][0, :-1].reshape(1, y_raw[0][0, :-1].shape[0]), y_pred[0, :end_token_idx, :-1].detach().cpu().data.numpy()), axis=0)
 
             obj_target = get_pred_obj(y_raw[0][:, :-1], args)  # y_raw[0][:-1]
 
@@ -215,7 +221,7 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
     pred_cut_ex = get_all_stage_cuts(y_pred, args, device)
     for i in range(num_var):
         get_cut_graph(target_cut=y_raw[:args.num_stages - 1],
-                      pred_cut=[pred_cut[:, :-2] for pred_cut in pred_cut_ex],
+                      pred_cut=pred_cut_ex,
                       var_idx=i,
                       args=args,
                       save_path="D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/predict/{}".format(args.prob, args.num_stages, args.mode,
@@ -336,8 +342,8 @@ def get_error_rate(pred, target):
 def get_end_token_idx(cuts_pred, device="cpu"):
     # categorical token
     # end_token_idx = torch.argmax(cuts_pred[:, -1])
-    token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
-    # token_idx = cuts_pred[:, -1]
+    # token_idx = torch.argmax(cuts_pred[:, -3:], dim=1)
+    token_idx = cuts_pred[:, -1]
     try:
         end_token_idx = (token_idx == 2).nonzero(as_tuple=False)[0][0]
     except:

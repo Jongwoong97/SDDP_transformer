@@ -1,3 +1,4 @@
+import argparse
 import pickle
 
 from matplotlib import pyplot as plt
@@ -235,13 +236,13 @@ def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
 
         for i in range(cuts[f"stage{stage}"].shape[0]):
             if i == 0:
-                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][1] * x + cuts[f"stage{stage}"][i][-1], label="cut sample", color='khaki')
+                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][var_start_idx + var_idx] * x + cuts[f"stage{stage}"][i][-1], label="cut sample", color='khaki')
             else:
-                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][1] * x + cuts[f"stage{stage}"][i][-1], color='khaki')
+                ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, cuts[f"stage{stage}"][i][var_start_idx + var_idx] * x + cuts[f"stage{stage}"][i][-1], color='khaki')
 
         avg_cut = np.mean(cuts[f"stage{stage}"], axis=0)
-        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, avg_cut[1] * x + avg_cut[-1], label="cut mean", color='blue')
-        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, -pred_cut[f"stage{stage}"][1] * x / pred_cut[f"stage{stage}"][-3] + -pred_cut[f"stage{stage}"][-2] / pred_cut[f"stage{stage}"][-3], label="cut prediction", color='red')
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, avg_cut[var_start_idx + var_idx] * x + avg_cut[-1], label="cut mean", color='blue')
+        ax[0 if stage < len(cuts)/2 else 1, int(stage % ax.shape[1])].plot(x, -pred_cut[f"stage{stage}"][var_start_idx + var_idx] * x / pred_cut[f"stage{stage}"][-3] + -pred_cut[f"stage{stage}"][-2] / pred_cut[f"stage{stage}"][-3], label="cut prediction", color='red')
 
     # set labels
     for axs in ax[1]:
@@ -280,8 +281,13 @@ def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
 
 
 if __name__ == '__main__':
-    load_path = "D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/cuts.pickle"
+    load_path = "D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario/cuts.pickle"
     with open(load_path, 'rb') as fr:
         cuts = pickle.load(fr)
 
-    get_sample_scenario_cuts_graph(cuts)
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--prob', type=str, default='MertonsPortfolioOptimization',
+                        help='problem to solve')
+
+    get_sample_scenario_cuts_graph(cuts, 0, 0, parser.parse_args())

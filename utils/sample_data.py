@@ -84,11 +84,21 @@ def get_max_cut_cnt_from_target(problem, n_stages, sample_type):
     for it in range(len(cut)):
         for stage in num_max_cut_dict.keys():
             for sol in solution[:it+1]:
-                x = sol[stage][1]
+                if problem == "EnergyPlanning":
+                    x = sol[stage][1]
+                elif problem == "MertonsPortfolioOptimization":
+                    x = np.array((sol[stage][0], sol[stage][1]))
+                else:
+                    raise NotImplementedError
                 max_val = -100
                 idx = -1
                 for i in range(len(cut[it][stage]['gradient'])):
-                    tmp = cut[it][stage]["gradient"][i] * x + cut[it][stage]["constant"][i]
+                    if problem == "EnergyPlanning":
+                        tmp = cut[it][stage]["gradient"][i] * x + cut[it][stage]["constant"][i]
+                    elif problem == "MertonsPortfolioOptimization":
+                        tmp = cut[it][stage]["gradient"][i] @ x + cut[it][stage]["constant"][i]
+                    else:
+                        raise NotImplementedError
                     if tmp > max_val:
                         idx = i
                         max_val = tmp
@@ -146,5 +156,5 @@ def get_max_cut_cnt_from_prediction(pred_cuts, problem, n_stages):
 
 
 if __name__ == '__main__':
-    get_max_cut_cnt_from_target("EnergyPlanning", 7, "target")
-    get_max_cut_cnt_from_target("EnergyPlanning", 7, "predict")
+    get_max_cut_cnt_from_target("MertonsPortfolioOptimization", 7, "target")
+    # get_max_cut_cnt_from_target("EnergyPlanning", 7, "predict")

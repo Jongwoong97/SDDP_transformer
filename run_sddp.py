@@ -60,12 +60,12 @@ def run_SDDP(args):
         opt_gap_list.append(opt_gap)
         ub_list.append(upper_bound)
 
-        # print(f"\nObjective value: {sddp.objective_value['stage0']}")
-        # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
-        # print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
-        # print(f"Optimality gap: {opt_gap}")
-        # print(f"total running time with iter {idx}: {time.time() - start}")
-        # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
+        print(f"\nObjective value: {sddp.objective_value['stage0']}")
+        print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
+        print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
+        print(f"Optimality gap: {opt_gap}")
+        print(f"total running time with iter {idx}: {time.time() - start}")
+        print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
         # if idx > 80:
         #     print("---" * 20)
@@ -81,8 +81,8 @@ def run_SDDP(args):
     return solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list
 
 
-def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list=None, ub_list=None, sample_type='default'):
-    save_path = 'D:/sddp_data/EnergyPlanning/stages_7/sample/{}'.format(sample_type)
+def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list=None, ub_list=None, sample_type='default', args=None):
+    save_path = 'D:/sddp_data/{}/stages_7/sample/{}'.format(args.prob, sample_type)
     os.makedirs(save_path, exist_ok=True)
 
     with open(os.path.join(save_path, "solution.pickle"), "wb") as fw:
@@ -126,8 +126,9 @@ def main(process):
 
         # save_sample_data(solution, obj_value, cut_list, args.sample_type)
         if len(obj_value) >= 100:
-            save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration")
+            save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
 
+        # save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "target", args)
 
         # if sddp is None:
         #     print("Episode {}/{} exceed max iteration".format(i + 1, args.max_episode))
