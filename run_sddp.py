@@ -60,12 +60,12 @@ def run_SDDP(args):
         opt_gap_list.append(opt_gap)
         ub_list.append(upper_bound)
 
-        print(f"\nObjective value: {sddp.objective_value['stage0']}")
-        print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
-        print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
-        print(f"Optimality gap: {opt_gap}")
-        print(f"total running time with iter {idx}: {time.time() - start}")
-        print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
+        # print(f"\nObjective value: {sddp.objective_value['stage0']}")
+        # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
+        # print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
+        # print(f"Optimality gap: {opt_gap}")
+        # print(f"total running time with iter {idx}: {time.time() - start}")
+        # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
         # if idx > 80:
         #     print("---" * 20)
@@ -95,7 +95,7 @@ def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list
         pickle.dump(cut_list, fw)
 
     if time_list:
-        with open(os.path.join(save_path, "ti me.pickle"), "wb") as fw:
+        with open(os.path.join(save_path, "time.pickle"), "wb") as fw:
             pickle.dump(time_list, fw)
     if opt_gap_list:
         with open(os.path.join(save_path, "opt_gap.pickle"), "wb") as fw:
@@ -121,18 +121,21 @@ def main(process):
     args = parser.parse_args()
     print("------------test stages: {}-------------".format(args.num_stages))
     print("------------test episode: {}-------------".format(args.max_episode))
+    times = []
     for i in range(args.max_episode):
         solution, obj_value, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args)
-
+        times.append(sum(time_list))
         # save_sample_data(solution, obj_value, cut_list, args.sample_type)
         if len(obj_value) >= 100:
             save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
 
+        print("mean time: ", np.mean(times))
         # save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "target", args)
 
         # if sddp is None:
         #     print("Episode {}/{} exceed max iteration".format(i + 1, args.max_episode))
         #     continue
+
         raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
         data = preprocessing(raw_data, args)
         save_data(data, args)

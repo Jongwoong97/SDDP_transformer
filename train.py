@@ -129,7 +129,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
 
         # error_rate_true_end.append(get_error_rate(obj_pred_true, obj_target) / obj_target)
 
-    return total_loss / len(dataloader), np.mean(error_rate) #, np.mean(error_rate_true_end)
+    return total_loss / len(dataloader), np.mean(error_rate) # np.mean(error_rate) #, np.mean(error_rate_true_end)
 
 
 def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args, device="cpu"):
@@ -166,7 +166,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             logit_to_label = torch.argmax(y_pred[:, :, -3:], dim=2, keepdim=True)
             y_pred = torch.concat((y_pred[:, :, :-3], logit_to_label), dim=2)
 
-            if (epoch % 10 == 0 or epoch == 1 or epoch == 97) and idx == 0:
+            if (epoch % 10 == 0 or epoch == 1 or epoch == args.epochs) and idx == 0:
                 get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device)
 
             end_token_idx = get_end_token_idx(y_pred[0], device) + 1  # get_end_token_idx(y_pred[0], device)
@@ -184,7 +184,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
 
             # error_rate_true_end.append(get_error_rate(obj_pred_true, obj_target) / obj_target)
 
-    return total_loss / len(dataloader), np.mean(error_rate) #, np.mean(error_rate_true_end)
+    return total_loss / len(dataloader), np.mean(error_rate) # np.mean(error_rate) #, np.mean(error_rate_true_end)
 
 
 def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device):
@@ -315,7 +315,10 @@ def get_pred_obj(cuts, args):
         constraints.append(x[:4] >= 0)
         obj = cp.Minimize(cp.exp(c[2]*x[1]+c[3]) + c[0]*x[2] + c[1]*x[3] + c[-1]*x[-1])
         prob = cp.Problem(obj, constraints)
-        prob.solve(solver=cp.MOSEK)
+        try:
+            prob.solve(solver=cp.MOSEK)
+        except:
+            return 2
     elif args.prob == "MertonsPortfolioOptimization":
         constraints.append(x[:4] >= 0)
         if utility_risk_aversion_coeff == 1:
@@ -323,7 +326,10 @@ def get_pred_obj(cuts, args):
         else:
             obj = cp.Minimize(-1 * (1 / (1 - utility_risk_aversion_coeff) * cp.power(x[2], 1 - utility_risk_aversion_coeff)) + x[4])
         prob = cp.Problem(obj, constraints)
-        prob.solve(solver=cp.MOSEK)
+        try:
+            prob.solve(solver=cp.MOSEK)
+        except:
+            return 2
     else:
         obj = cp.Minimize(c @ x)
         prob = cp.Problem(obj, constraints)

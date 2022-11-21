@@ -33,7 +33,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
 
         for i in range(len(target_cut[stage])):
-            if stage == 0:
+            if stage == 0 and i <= 20:
                 ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
             else:
                 ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
@@ -45,13 +45,14 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         # ax[1, int(stage % ax.shape[-1])].legend()
 
     # set labels
-    for axs in ax.flat:
+    for axs in ax[1]:
         axs.set_xlabel(f"x: {var_name}", size=12)
-        axs.set_ylabel("l(x): subgradient cut", size=12)
+    for axs in ax[:, 0]:
+        axs.set_ylabel("l(x): cutting plane", size=12)
 
     # Hide x labels and tick labels for top plots and y ticks for right plots.
-    for axs in ax.flat:
-        axs.label_outer()
+    # for axs in ax.flat:
+    #     axs.label_outer()
 
     ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
     plt.tight_layout()
@@ -99,7 +100,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
 
         for i in range(len(target_cut[stage])):
-            if stage == (len(target_cut))//2:
+            if stage == (len(target_cut))//2 and i <= 20:
                 ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2], label=f"cut {i}")
             else:
                 ax[int(stage % ax.shape[0]), 1].plot(x, target_cut[stage][i][var_start_idx+var_idx] * x + target_cut[stage][i][-2])
@@ -111,13 +112,14 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         # ax[1, int(stage % ax.shape[-1])].legend()
 
     # set labels
-    for axs in ax.flat:
+    for axs in ax[1]:
         axs.set_xlabel(f"x: {var_name}", size=12)
-        axs.set_ylabel("l(x): subgradient cut", size=12)
+    for axs in ax[:, 0]:
+        axs.set_ylabel("l(x): cutting plane", size=12)
 
     # Hide x labels and tick labels for top plots and y ticks for right plots.
-    for axs in ax.flat:
-        axs.label_outer()
+    # for axs in ax.flat:
+    #     axs.label_outer()
 
     ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
     plt.tight_layout()
@@ -248,7 +250,7 @@ def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
     for axs in ax[1]:
         axs.set_xlabel(f"x: {var_name}", size=12)
     for axs in ax[:, 0]:
-        axs.set_ylabel("l(x): subgradient cut", size=12)
+        axs.set_ylabel("l(x): cutting plane", size=12)
 
     #
     # Hide x labels and tick labels for top plots and y ticks for right plots.

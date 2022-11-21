@@ -7,8 +7,10 @@ from data.dataset import SddpDataset
 from data.sampler import SubsetSequentialSampler
 from torch.utils.data import DataLoader, SubsetRandomSampler
 from network.transformer import Transformer
-from train import fit, predict
+from train import fit, predict, get_pred_obj
+from run_MSP import MSP_EP, MSP_FP
 from scheduler import CosineWarmupScheduler, CosineAnnealingWarmUpRestarts
+from visualization.common_graph import get_obj_graph
 from visualization.cuts_graph import *
 from visualization.attention_score_graph import read_plot_alignment_matrices
 from utils.sample_data import get_sample_data, get_max_cut_cnt_from_prediction
@@ -65,8 +67,14 @@ def main(args):
             save_path = os.path.join(save_path, "change_loss")
 
     if args.mode == 'inference_one_sample':
-        mu = 25
-        sigma = 5
+        if args.prob == "EnergyPlanning":
+            mu = 25
+            sigma = 5
+        elif args.prob == "MertonsPortfolioOptimization":
+            mu = 0.06
+            sigma = 0.15
+        else:
+            raise NotImplementedError
         x_raw_data, y_raw_data = get_sample_data(args, mu, sigma)
     else:
         print(f"Data from {save_path}")
@@ -81,7 +89,7 @@ def main(args):
     elif args.mode == 'inference':
         inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data)
     elif args.mode == 'inference_one_sample':
-        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 3)
+        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 6)
     else:
         raise ValueError
 
@@ -92,6 +100,8 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     dataset = SddpDataset(x_raw_data, y_raw_data)
     loss_fn = (nn.MSELoss(), nn.CrossEntropyLoss())
     for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(dataset)))):
+        # if fold < 5:
+        #     continue
         train_sampler = SubsetSequentialSampler(train_idx)
         val_sampler = SubsetSequentialSampler(val_idx)
 
@@ -193,7 +203,7 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
                                                                                           cnt_cuts=1,
                                                                                           device=device)
 
-    with open("D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/1st_cut/cuts.pickle", 'rb') as fr:
+    with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
         target_cuts = pickle.load(fr)
 
     get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0, args)
@@ -201,16 +211,24 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     # print(encoder_weights)
     # decoder_weights_mha = decoder_weights_mha[:10]
 
-    with open(os.path.join('D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/mu25_sigma5', "labels.pickle"), "rb") as fr:
+    mu = 25
+    sigma = 5
+    # mu = 0.06
+    # sigma = 0.15
+    with open(os.path.join('D:/sddp_data/{}/stages_7/sample_scenario/mu{}_sigma{}', "labels.pickle").format(args.prob, mu, sigma), "rb") as fr:
         y_raw_data = pickle.load(fr)
 
-    size_reduced = 22
+    data = get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args)
+    get_obj_graph(data)
+
+    size_reduced = 27
+    decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
 
     # get_max_cut_cnt_from_prediction(pred_cut_ex[0][:size_reduced, :size_reduced], problem='EnergyPlanning', n_stages=7)
 
     # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced+1, :size_reduced], diagonal=-1)[1:size_reduced+1]
     # decoder_weights_sa = decoder_weights_sa / torch.sum(decoder_weights_sa, dim=1, keepdim=True)
-    decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
+
 
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
                                  target_labels=np.arange(decoder_weights_sa.shape[0]),
@@ -255,6 +273,29 @@ def model_initialize(src_dim, tgt_dim, device, args):
     else:
         raise NotImplementedError
     return model, optimizer, lr_scheduler
+
+
+def get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args):
+    obj_sddp_by_iter = []
+    obj_sddp_transformer_by_iter = []
+    for i in range(len(y_raw_data[0]) + 15):
+        obj_sddp_by_iter.append(get_pred_obj(y_raw_data[0][:i + 1, :-1], args))
+        obj_sddp_transformer_by_iter.append(get_pred_obj(pred_cut_ex[0][:i + 1, :-1], args))
+    if args.prob == 'EnergyPlanning':
+        _, obj_optimal = MSP_EP(stageNum=args.num_stages,
+                                scenario_node=3,
+                                mm=True,
+                                paramdict={'mean': mu, 'scale': sigma})
+    elif args.prob == 'MertonsPortfolioOptimization':
+        _, obj_optimal = MSP_FP(stageNum=args.num_stages,
+                                scenario_node=3,
+                                mm=True,
+                                paramdict={'mu': mu, 'sigma': sigma})
+    else:
+        raise NotImplementedError
+    data = {"Optimal": [obj_optimal] * len(obj_sddp_by_iter), "SDDP": obj_sddp_by_iter,
+            "SDDP-Transformer": obj_sddp_transformer_by_iter}
+    return data
 
 
 if __name__ == "__main__":

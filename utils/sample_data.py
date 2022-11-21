@@ -17,15 +17,15 @@ def get_sample_data(args, sample_mean, sample_std):
     _b = np.concatenate((b, np.zeros_like(b)), axis=1)
     _c = np.tile(np.concatenate((c, np.zeros_like(c)), axis=0), (_A.shape[0], 1))
 
-    if type(sample_mean) is int:
+    if type(sample_mean) is list:
+        rv_mean = [sample_mean] * (args.num_stages - 1)
+    else:
         rv_mean = [[sample_mean]] * (args.num_stages - 1)
-    else:
-        rv_mean = [sample_mean]*(args.num_stages-1)
 
-    if type(sample_std) is int:
-        rv_std = [[sample_std]] * (args.num_stages - 1)
+    if type(sample_std) is list:
+        rv_std = [sample_std] * (args.num_stages - 1)
     else:
-        rv_std = [sample_std]*(args.num_stages-1)
+        rv_std = [[sample_std]] * (args.num_stages - 1)
 
     if args.prob == "MertonsPortfolioOptimization":
         initial_cut_constant = -100
