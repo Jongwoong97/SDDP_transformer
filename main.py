@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 import gc
@@ -43,19 +45,28 @@ def main(args):
         tgt_dim = 7  # 9
     elif args.prob == "MertonsPortfolioOptimization":
         src_dim = 19  # 27
-        tgt_dim = 7 # 7
+        tgt_dim = 7  # 7
     else:
         raise NotImplementedError
 
     # 데이터 불러오기
     if args.mode == 'train':
         save_path = os.path.join(args.save_path, "{}/stages_{}/train".format(args.prob,
-                                                                                args.num_stages))  # /original/except_outliers
+                                                                             args.num_stages))  # /original/except_outliers
+
+        if args.dataset == 'total':
+            save_path = os.path.join(save_path, "total")
+
         if args.outlier == 'except_outlier':
             save_path = os.path.join(save_path, "except_outliers")
 
         if args.loss == 'MSE_CE':
             save_path = os.path.join(save_path, "change_loss")
+        else:
+            raise ValueError
+
+        if args.stage_information == "rest":
+            save_path = os.path.join(save_path, "stage_information_rest/integer_stage_inform")
         else:
             raise ValueError
 
@@ -66,13 +77,16 @@ def main(args):
         if args.loss == 'MSE_CE':
             save_path = os.path.join(save_path, "change_loss")
 
+        if args.stage_information == "rest":
+            save_path = os.path.join(save_path, "stage_information_rest/integer_stage_inform")
+
     if args.mode == 'inference_one_sample':
         if args.prob == "EnergyPlanning":
-            mu = 25
+            mu = 22.5
             sigma = 5
         elif args.prob == "MertonsPortfolioOptimization":
             mu = 0.06
-            sigma = 0.15
+            sigma = 0.2
         else:
             raise NotImplementedError
         x_raw_data, y_raw_data = get_sample_data(args, mu, sigma)
@@ -89,7 +103,7 @@ def main(args):
     elif args.mode == 'inference':
         inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data)
     elif args.mode == 'inference_one_sample':
-        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 6)
+        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 1)
     else:
         raise ValueError
 
@@ -140,6 +154,8 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
 def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     inference_error_ratio_pred = []
     inference_error_ratio_sddp = []
+    inference_error_ratio_var_pred = []
+    inference_error_ratio_var_sddp = []
     for fold in range(1, 7):
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
 
@@ -153,11 +169,11 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         test_dataset = SddpDataset(x_raw_data, y_raw_data)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
-        errors_pred, errors_sddp, pred_cut_ex, _, _, _ = predict(model=model,
-                                                                 dataloader=test_dataloader,
-                                                                 args=args,
-                                                                 cnt_cuts=1,
-                                                                 device=device)
+        errors_pred, errors_sddp, errors_var_pred, errors_var_sddp, pred_cut_ex, _, _, _ = predict(model=model,
+                                                                                                   dataloader=test_dataloader,
+                                                                                                   args=args,
+                                                                                                   cnt_cuts=1,
+                                                                                                   device=device)
         print(f"Fold {fold}, errors mean(sddp-transformer): ", errors_pred)
 
         inference_error_ratio_pred.append(errors_pred)
@@ -165,6 +181,14 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         print(f"Fold {fold}, errors mean(sddp): ", errors_sddp)
 
         inference_error_ratio_sddp.append(errors_sddp)
+
+        print(f"Fold {fold}, errors var(sddp-transformer): ", errors_var_pred)
+
+        inference_error_ratio_var_pred.append(errors_var_pred)
+
+        print(f"Fold {fold}, errors var(sddp): ", errors_var_sddp)
+
+        inference_error_ratio_var_sddp.append(errors_var_sddp)
 
         if args.prob == "ProductionPlanning":
             num_var = 3
@@ -182,6 +206,8 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
                           save_path=inf_path)
     print("mean error ratio(sddp-transformer): ", np.mean(inference_error_ratio_pred))
     print("mean error ratio(sddp): ", np.mean(inference_error_ratio_sddp))
+    print("var error ratio(sddp-transformer): ", np.mean(inference_error_ratio_var_pred))
+    print("var error ratio(sddp): ", np.mean(inference_error_ratio_var_sddp))
 
 
 def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, fold):
@@ -197,7 +223,7 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     test_dataset = SddpDataset(x_raw_data, y_raw_data)
     test_dataloader = DataLoader(test_dataset, batch_size=args.num_stages)
 
-    _, _, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
+    _, _, _, _, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
                                                                                           dataloader=test_dataloader,
                                                                                           args=args,
                                                                                           cnt_cuts=1,
@@ -206,16 +232,24 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
         target_cuts = pickle.load(fr)
 
-    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0, args)
+    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0,
+                                   args)
+
+    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 1,
+                                   args)
 
     # print(encoder_weights)
     # decoder_weights_mha = decoder_weights_mha[:10]
 
-    mu = 25
-    sigma = 5
-    # mu = 0.06
-    # sigma = 0.15
-    with open(os.path.join('D:/sddp_data/{}/stages_7/sample_scenario/mu{}_sigma{}', "labels.pickle").format(args.prob, mu, sigma), "rb") as fr:
+    # mu = 22.5
+    # sigma = 5
+
+    mu = 0.06
+    sigma = 0.2
+    with open(
+            os.path.join('D:/sddp_data/{}/stages_7/sample_scenario/mu{}_sigma{}', "labels.pickle").format(args.prob, mu,
+                                                                                                          sigma),
+            "rb") as fr:
         y_raw_data = pickle.load(fr)
 
     data = get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args)
@@ -229,11 +263,9 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced+1, :size_reduced], diagonal=-1)[1:size_reduced+1]
     # decoder_weights_sa = decoder_weights_sa / torch.sum(decoder_weights_sa, dim=1, keepdim=True)
 
-
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
                                  target_labels=np.arange(decoder_weights_sa.shape[0]),
                                  alpha=decoder_weights_sa)
-
 
     if args.prob == "ProductionPlanning":
         num_var = 3
@@ -325,4 +357,6 @@ if __name__ == "__main__":
                         choices=['not_except_outlier', 'except_outlier'])
     parser.add_argument('--loss', type=str, default='MSE',
                         choices=['MSE', 'MSE_CE'])
+    parser.add_argument('--stage_information', type=str, default="ratio", choices=["ratio", "rest"])
+    parser.add_argument('--dataset', type=str, default="None")
     main(parser.parse_args())

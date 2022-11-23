@@ -7,12 +7,15 @@ import math
 class Transformer(nn.Module):
     def __init__(self, src_dim, tgt_dim, d_model, nhead, num_encoder_layers, num_decoder_layers, dropout):
         super(Transformer, self).__init__()
+        # n_embed = 15
+        # dim_embed = round(n_embed**0.25)
 
         # Layers
         self.positional_encoding = PositionalEncoding(d_model=d_model, dropout=dropout, max_len=200)
-        # self.n_stage = 7
-        # self.embed = nn.Embedding(num_embeddings=self.n_stage, embedding_dim=1)
-        self.linear_src = nn.Linear(src_dim, d_model) # self.linear_src = nn.Linear(src_dim-1, d_model-1)
+
+        # self.embed = nn.Embedding(num_embeddings=n_embed, embedding_dim=dim_embed)
+        self.linear_src = nn.Linear(src_dim, d_model)
+        # self.linear_src = nn.Linear(src_dim + dim_embed - 1, d_model)
         self.linear_tgt = nn.Linear(tgt_dim + 2, d_model)
         self.transformer = nn.Transformer(
             d_model=d_model,
@@ -31,8 +34,9 @@ class Transformer(nn.Module):
         # stage_embed = self.embed(torch.mul(src[:, :, -1], self.n_stage-1).long())
         token_encoding = F.one_hot(tgt[:, :, -1].to(torch.long), num_classes=3)
         tgt = torch.concat((tgt[:, :, :-1], token_encoding), dim=2)
+        # stage_embed = self.embed(src[:, :, -1].long())
+        # src = torch.concat((src[:, :, :-1], stage_embed), dim=2)
         src = self.linear_src(src) # self.linear_src(src[:, :, :-1])
-        # src = torch.concat((src, stage_embed), dim=2)
 
         # src = self.positional_encoding(src)
         tgt = self.linear_tgt(tgt)

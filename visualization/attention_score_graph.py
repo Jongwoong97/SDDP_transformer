@@ -3,6 +3,14 @@ import seaborn as sns
 import numpy as np
 import os
 
+parameters = {'axes.labelsize': 12,
+              'axes.titlesize': 12,
+              'xtick.labelsize': 10,
+              'ytick.labelsize': 10,
+              'legend.fontsize': 10}
+
+plt.rcParams.update(parameters)
+
 def plot_head_map(mma, target_labels, source_labels):
 
     # sns.set_palette("pastel", 2)

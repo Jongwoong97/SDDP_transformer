@@ -25,12 +25,12 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     x = np.array(range(-500, 500))
 
     # fig, ax = plt.subplots(2, 3, figsize=(20, 15), sharex=True)
-    fig, ax = plt.subplots(3, 2, figsize=(14, 21), sharex='all', sharey='row')
+    fig, ax = plt.subplots(3, 2, figsize=(16, 24), sharex='all', sharey='row')
     for stage in range((len(target_cut))//2):
         ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (prediction)".format(stage))
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (SDDP-Transformer)".format(stage), size=14)
         ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
+        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (SDDP)".format(stage), size=14)
 
         for i in range(len(target_cut[stage])):
             if stage == 0 and i <= 20:
@@ -45,10 +45,10 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         # ax[1, int(stage % ax.shape[-1])].legend()
 
     # set labels
-    for axs in ax[1]:
-        axs.set_xlabel(f"x: {var_name}", size=12)
+    for axs in ax[-1]:
+        axs.set_xlabel(f"x: {var_name}", fontsize=14)
     for axs in ax[:, 0]:
-        axs.set_ylabel("l(x): cutting plane", size=12)
+        axs.set_ylabel("l(x): cutting plane", fontsize=14)
 
     # Hide x labels and tick labels for top plots and y ticks for right plots.
     # for axs in ax.flat:
@@ -91,13 +91,13 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     # plt.savefig(os.path.join(save_path, "stage0~2_cuts_{}.png".format(var_idx)))
     # plt.clf()
 
-    fig, ax = plt.subplots(3, 2, figsize=(14, 21), sharex='all', sharey='row')
+    fig, ax = plt.subplots(3, 2, figsize=(16, 24), sharex='all', sharey='row')
 
     for stage in range((len(target_cut))//2, len(target_cut)):
         ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (prediction)".format(stage))
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (SDDP-Transformer)".format(stage), size=14)
         ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (target)".format(stage))
+        ax[int(stage % ax.shape[0]), 1].set_title("stage{} (SDDP)".format(stage), size=14)
 
         for i in range(len(target_cut[stage])):
             if stage == (len(target_cut))//2 and i <= 20:
@@ -112,10 +112,10 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         # ax[1, int(stage % ax.shape[-1])].legend()
 
     # set labels
-    for axs in ax[1]:
-        axs.set_xlabel(f"x: {var_name}", size=12)
+    for axs in ax[-1]:
+        axs.set_xlabel(f"x: {var_name}", fontsize=14)
     for axs in ax[:, 0]:
-        axs.set_ylabel("l(x): cutting plane", size=12)
+        axs.set_ylabel("l(x): cutting plane", fontsize=14)
 
     # Hide x labels and tick labels for top plots and y ticks for right plots.
     # for axs in ax.flat:

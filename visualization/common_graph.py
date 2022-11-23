@@ -6,6 +6,20 @@ import seaborn as sns
 import numpy as np
 import os
 
+# parameters = {'axes.labelsize': 20,
+#               'axes.titlesize': 20,
+#               'xtick.labelsize': 15,
+#               'ytick.labelsize': 15,
+#               'legend.fontsize': 10}
+
+parameters = {'axes.labelsize': 12,
+              'axes.titlesize': 12,
+              'xtick.labelsize': 10,
+              'ytick.labelsize': 10,
+              'legend.fontsize': 10}
+
+plt.rcParams.update(parameters)
+
 
 def get_2dim_graph(x, y, x_label, y_label, save_path=''):
     sns.lineplot(x, y)
@@ -22,7 +36,7 @@ def get_dist_graph(data, x_label, y_label):
     # sns.displot(data=data, log_scale=True)
     sns.displot(data=data, color='royalblue')
     plt.title("Histogram of # Cutting Planes")
-    plt.vlines(80, 0, 1200, color='red', linestyles='--', label=r'$x_\alpha$ for $F(x_\alpha) = \alpha$')
+    plt.vlines(80, 0, 800, color='red', linestyles='--', label=r'$x_\alpha$ for $F(x_\alpha) = \alpha$') # EP: (80, 1200), FP: (40, 2500)
     plt.legend()
     # sns.lineplot(x)
     plt.xlabel(x_label)
@@ -42,7 +56,7 @@ def get_shape_inform(data):
 
 
 def get_obj_graph(datas):
-    plt.plot()
+
     plt.grid(color="gray", alpha=0.5, linestyle="-")
     plt.title("Objective Value per # Cutting Planes")
     plt.xlabel("# cutting planes")
@@ -55,7 +69,8 @@ def get_obj_graph(datas):
             plt.plot(value, label=key, linestyle='--', color='royalblue')
         else:
             plt.plot(value, label=key, color='salmon')
-    plt.legend()
+    plt.legend(fontsize=15)
+
     plt.show()
 
 
@@ -123,7 +138,7 @@ if __name__ == '__main__':
                    x_label='iteration',
                    y_label='obj value')
 
-    with open("D:/sddp_data/EnergyPlanning/stages_7/train/mm/original/{}.pickle".format("labels"), "rb") as fr:
+    with open("D:/sddp_data/EnergyPlanning/stages_7/train/original/{}.pickle".format("labels"), "rb") as fr:
         data_obj = pickle.load(fr)
 
     get_dist_graph(get_shape_inform(data_obj), x_label="# of cutting planes", y_label="count")

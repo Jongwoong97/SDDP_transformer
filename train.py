@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 import os
@@ -236,15 +238,17 @@ def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
     errors_sddp = []
     with torch.no_grad():
         for idx, batch in enumerate(dataloader):
+            # if idx < 10:
+            #     continue
             X, y = batch[0], batch[1]
             error_pred, error_sddp, pred_cut, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict_one_batch(X, y, idx, model, args, cnt_cuts, device)
             errors_pred += error_pred
             errors_sddp += error_sddp
             if idx == 0:
                 pred_cut_ex = pred_cut
-            elif idx == 10:
+            elif idx == 20:
                 break
-    return np.mean(errors_pred), np.mean(errors_sddp), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
+    return np.mean(errors_pred), np.mean(errors_sddp), np.var(errors_pred), np.var(errors_sddp), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
 
 
 def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
@@ -258,8 +262,9 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     else:
         max_length = 100
 
+    # temp = time.time()
     y_input, encoder_weights, decoder_weights_sa, decoder_weights_mha = get_pred_cuts(X, y, cnt_cuts, model, device, max_length)
-
+    # print("computation time: ", (time.time() - temp))
     if idx == 0:
         pred_cut_ex = get_all_stage_cuts(y_input, args, device)
     else:

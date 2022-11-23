@@ -60,18 +60,19 @@ def run_SDDP(args):
         opt_gap_list.append(opt_gap)
         ub_list.append(upper_bound)
 
-        # print(f"\nObjective value: {sddp.objective_value['stage0']}")
-        # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
-        # print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
-        # print(f"Optimality gap: {opt_gap}")
-        # print(f"total running time with iter {idx}: {time.time() - start}")
-        # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
+        print(f"\nObjective value: {sddp.objective_value['stage0']}")
+        print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
+        print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
+        print(f"Optimality gap: {opt_gap}")
+        print(f"total running time with iter {idx}: {time.time() - start}")
+        print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
         # if idx > 80:
         #     print("---" * 20)
         #     return solution_list[-1]["stage0"], objective_list[-1]["stage0"], time.time() - start, None
 
-        if done:
+        # if done:
+        if idx >= 100:
             print("---" * 20)
             break
 
@@ -82,7 +83,7 @@ def run_SDDP(args):
 
 
 def save_sample_data(solution, obj_value, cut_list, time_list=None, opt_gap_list=None, ub_list=None, sample_type='default', args=None):
-    save_path = 'D:/sddp_data/{}/stages_7/sample/{}'.format(args.prob, sample_type)
+    save_path = 'D:/sddp_data/{}/stages_{}/sample/{}'.format(args.prob, args.num_stages, sample_type)
     os.makedirs(save_path, exist_ok=True)
 
     with open(os.path.join(save_path, "solution.pickle"), "wb") as fw:
@@ -136,9 +137,9 @@ def main(process):
         #     print("Episode {}/{} exceed max iteration".format(i + 1, args.max_episode))
         #     continue
 
-        raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
-        data = preprocessing(raw_data, args)
-        save_data(data, args)
+        # raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
+        # data = preprocessing(raw_data, args)
+        # save_data(data, args)
         print("Process {}: Episode {}/{} result saved".format(process, i + 1, args.max_episode))
 
 

@@ -234,14 +234,14 @@ def MSP_FP(stageNum=11, scenario_node=2, mm=True, paramdict={}):
     optStage0 = [item.value for item in totVars[0]]
     optStage0_n = [str(item) for item in totVars[0]]
     pt = [item + ': ' + str(optStage0[idx]) + ',' for idx, item in enumerate(optStage0_n)]
-    print('===========================================================================')
-    print('optimalSol: ', pt)
-    print('optimalVal: ', problem.value)
-    print('Time:', time.time() - start)
-    print('===========================================================================')
+    # print('===========================================================================')
+    # print('optimalSol: ', pt)
+    # print('optimalVal: ', problem.value)
+    # print('Time:', time.time() - start)
+    # print('===========================================================================')
     return optStage0, problem.value
 
 
 if __name__ == '__main__':
-    MSP_EP(stageNum=7, scenario_node=3, paramdict={'mean': 20, 'scale': 5}, mm=True)
-    # MSP_FP(stageNum=7, scenario_node=2, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)
+    # MSP_EP(stageNum=7, scenario_node=3, paramdict={'mean': 20, 'scale': 5}, mm=True)
+    MSP_FP(stageNum=7, scenario_node=5, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)

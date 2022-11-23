@@ -127,6 +127,65 @@ def preprocess_sample_scenario_cuts(load_path, save_path):
         pickle.dump(cuts, fw)
 
 
+def change_stage_information(load_path, save_path):
+    if os.path.exists(load_path):
+        with open(os.path.join(load_path, "features.pickle"), "rb") as fr:
+            data = pickle.load(fr)
+    else:
+        raise FileNotFoundError
+
+    os.makedirs(save_path, exist_ok=True)
+    new_data = []
+    for d in data:
+        d[:, -1] = 7 - d[:, -1] * 6
+        new_data.append(d)
+    with open(os.path.join(save_path, "features.pickle"), "wb") as fw:
+        pickle.dump(new_data, fw)
+
+
+def change_stage_information_to_ratio(load_path, save_path):
+    if os.path.exists(load_path):
+        with open(os.path.join(load_path, "features.pickle"), "rb") as fr:
+            data = pickle.load(fr)
+    else:
+        raise FileNotFoundError
+
+    os.makedirs(save_path, exist_ok=True)
+    new_data = []
+    for d in data:
+        d[:, -1] /= 14
+        new_data.append(d)
+    with open(os.path.join(save_path, "features.pickle"), "wb") as fw:
+        pickle.dump(new_data, fw)
+
+
+def concat_data(load_path_data1, load_path_data2, save_path):
+    with open(os.path.join(load_path_data1, "labels.pickle"), "rb") as fr:
+        data1_label = pickle.load(fr)
+
+    with open(os.path.join(load_path_data1, "features.pickle"), "rb") as fr:
+        data1_features = pickle.load(fr)
+
+    with open(os.path.join(load_path_data2, "labels.pickle"), "rb") as fr:
+        data2_label = pickle.load(fr)
+
+    with open(os.path.join(load_path_data2, "features.pickle"), "rb") as fr:
+        data2_features = pickle.load(fr)
+
+    # dl = data1_label.pop(0)
+    # data1_label.append(dl)
+    # df = data1_features.pop(0)
+    # data1_features.append(df)
+
+    new_data_features = data1_features + data2_features
+    new_data_labels = data1_label + data2_label
+
+    os.makedirs(save_path, exist_ok=True)
+    with open(os.path.join(save_path, "labels.pickle"), "wb") as fw:
+        pickle.dump(new_data_labels, fw)
+    with open(os.path.join(save_path, "features.pickle"), "wb") as fw:
+        pickle.dump(new_data_features, fw)
+
 
 if __name__ == "__main__":
     """
@@ -134,18 +193,18 @@ if __name__ == "__main__":
         EnergyPlanning: 7~80
         MertonsPortfolioOptimization: 40
     """
-    # except_outlier(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/train",
-    #                save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/train/except_outliers",
-    #                low=0,
-    #                high=40)
+    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/total",
+    #                save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers",
+    #                low=7,
+    #                high=80)
 
     """
         idx_delete_start, idx_delete_end:
         EnergyPlanning: 16, 24
         MertonsPortfolioOptimization: 18, 26
     """
-    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/original",
-    #                           save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm",
+    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/original",
+    #                           save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total",
     #                           idx_delete_start=16,
     #                           idx_delete_end=24)
 
@@ -157,5 +216,15 @@ if __name__ == "__main__":
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
 
-    change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/mu22.5_sigma5",
-                            save_path="D:/sddp_data/EnergyPlanning/stages_7/sample_scenario/mu22.5_sigma5")
+    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers",
+    #                         save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers/change_loss")
+
+    # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers/change_loss",
+    #                          save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers/change_loss/stage_information_rest/integer_stage_inform")
+    #
+    change_stage_information_to_ratio(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers/change_loss/stage_information_rest/integer_stage_inform",
+                                      save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/except_outliers/change_loss/stage_information_rest")
+
+    # concat_data(load_path_data1="D:/sddp_data/EnergyPlanning/stages_7/train/original",
+    #             load_path_data2="D:/sddp_data/EnergyPlanning/stages_7/train/mm/original",
+    #             save_path="D:/sddp_data/EnergyPlanning/stages_7/train/total/original")

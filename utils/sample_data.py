@@ -37,28 +37,34 @@ def get_sample_data(args, sample_mean, sample_std):
     feature_all = []
     label_all = [initial_cut]*(args.num_stages - 1)
     for stage in range(args.num_stages-1):
+        if args.stage_information == 'rest':
+            stage_information = np.tile((args.num_stages - stage - 1)/14, (_A.shape[0], 1))
+            # stage_information = np.tile(args.num_stages - stage - 1, (_A.shape[0], 1))
+        else:
+            stage_information = np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))
+
         # features
         if args.prob == "ProductionPlanning":
             b_mean = np.array(rv_mean[stage] + [10]).reshape(_A.shape[0], 1)
             b_std = np.array(rv_std[stage] + [0]).reshape(_A.shape[0], 1)
             if args.feature_type == "objective_information":
-                feature = np.concatenate((_A, _B, _c, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, _c, b_mean, b_std, stage_information), axis=1)
             else:
-                feature = np.concatenate((_A, _B, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, b_mean, b_std, stage_information), axis=1)
         elif args.prob == "EnergyPlanning":
             b_mean = np.array(rv_mean[stage] + [0, 20]).reshape(_A.shape[0], 1)
             b_std = np.array(rv_std[stage] + [0, 0]).reshape(_A.shape[0], 1)
             if args.feature_type == "objective_information":
-                feature = np.concatenate((_A, _B, _c, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, _c, b_mean, b_std, stage_information), axis=1)
             else:
-                feature = np.concatenate((_A, _B, b_mean, b_std, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, b_mean, b_std, stage_information), axis=1)
         elif args.prob == "MertonsPortfolioOptimization":
             _B[0][0] = rv_mean[stage][0]
             _B[0][4] = rv_std[stage][0]
             if args.feature_type == "objective_information":
-                feature = np.concatenate((_A, _B, _b, _c, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, _b, _c, stage_information), axis=1)
             else:
-                feature = np.concatenate((_A, _B, _b, np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))), axis=1)
+                feature = np.concatenate((_A, _B, _b, stage_information), axis=1)
         else:
             raise NotImplementedError
         feature_all.append(feature)
