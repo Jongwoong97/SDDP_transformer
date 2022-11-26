@@ -51,7 +51,7 @@ def main(args):
 
     # 데이터 불러오기
     if args.mode == 'train':
-        save_path = os.path.join(args.save_path, "{}/stages_{}/train".format(args.prob,
+        save_path = os.path.join(args.save_path, "{}/stages_{}/train/mm".format(args.prob,
                                                                              args.num_stages))  # /original/except_outliers
 
         if args.dataset == 'total':
@@ -67,8 +67,6 @@ def main(args):
 
         if args.stage_information == "rest":
             save_path = os.path.join(save_path, "stage_information_rest/integer_stage_inform")
-        else:
-            raise ValueError
 
     elif args.mode == 'inference':
         save_path = os.path.join(args.save_path,
@@ -109,11 +107,17 @@ def main(args):
 
 
 def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
-    splits = KFold(n_splits=args.kfold, shuffle=False)
     run_time = (datetime.now()).strftime("%Y%m%d_%H%M%S")
     dataset = SddpDataset(x_raw_data, y_raw_data)
     loss_fn = (nn.MSELoss(), nn.CrossEntropyLoss())
-    for fold, (train_idx, val_idx) in enumerate(splits.split(np.arange(len(dataset)))):
+
+    if args.kfold == 1:
+        data_split = [(list(np.arange(0, len(x_raw_data))), list(np.arange(0, len(x_raw_data))))]
+    else:
+        splits = KFold(n_splits=args.kfold, shuffle=False)
+        data_split = splits.split(np.arange(len(dataset)))
+
+    for fold, (train_idx, val_idx) in enumerate(data_split):
         # if fold < 5:
         #     continue
         train_sampler = SubsetSequentialSampler(train_idx)
@@ -123,6 +127,10 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         val_dataloader = DataLoader(dataset, batch_size=args.batch_size, shuffle=False, sampler=val_sampler)
 
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
+
+        if args.load_model != 'None':
+            inf_path = os.path.join(os.getcwd(), "scripts", "logs", "{}, Fold {}".format(args.load_model, fold + 1))
+            model.load_state_dict(torch.load(os.path.join(inf_path, "best_episode.ckpt")))
 
         # log 설정 (tensorboard)
         log_path = os.path.join(os.getcwd(), "scripts", "logs", run_time + ", Fold {}".format(fold + 1))
@@ -156,9 +164,11 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     inference_error_ratio_sddp = []
     inference_error_ratio_var_pred = []
     inference_error_ratio_var_sddp = []
+    obj_pred_vars, obj_sddp_vars, obj_msp_vars = [], [], []
     for fold in range(1, 7):
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
-
+        # if fold <= 5:
+        #     continue
         if args.load_model == 'None':
             raise FileNotFoundError
         else:
@@ -169,11 +179,12 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         test_dataset = SddpDataset(x_raw_data, y_raw_data)
         test_dataloader = DataLoader(test_dataset, batch_size=args.batch_size)
 
-        errors_pred, errors_sddp, errors_var_pred, errors_var_sddp, pred_cut_ex, _, _, _ = predict(model=model,
-                                                                                                   dataloader=test_dataloader,
-                                                                                                   args=args,
-                                                                                                   cnt_cuts=1,
-                                                                                                   device=device)
+        errors_pred, errors_sddp, errors_var_pred, errors_var_sddp, obj_pred_var, obj_sddp_var, obj_msp_var, pred_cut_ex, _, _, _ = predict(
+            model=model,
+            dataloader=test_dataloader,
+            args=args,
+            cnt_cuts=1,
+            device=device)
         print(f"Fold {fold}, errors mean(sddp-transformer): ", errors_pred)
 
         inference_error_ratio_pred.append(errors_pred)
@@ -189,6 +200,13 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         print(f"Fold {fold}, errors var(sddp): ", errors_var_sddp)
 
         inference_error_ratio_var_sddp.append(errors_var_sddp)
+
+        print(f"Fold {fold}, obj var (sddp-transformer): ", obj_pred_var)
+        print(f"Fold {fold}, obj var (sddp): ", obj_sddp_var)
+        print(f"Fold {fold}, obj var (msp): ", obj_msp_var)
+        obj_pred_vars.append(obj_pred_var)
+        obj_sddp_vars.append(obj_sddp_var)
+        obj_msp_vars.append(obj_msp_var)
 
         if args.prob == "ProductionPlanning":
             num_var = 3
@@ -208,6 +226,9 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     print("mean error ratio(sddp): ", np.mean(inference_error_ratio_sddp))
     print("var error ratio(sddp-transformer): ", np.mean(inference_error_ratio_var_pred))
     print("var error ratio(sddp): ", np.mean(inference_error_ratio_var_sddp))
+    print("var obj value(sddp-transformer): ", np.mean(obj_pred_vars))
+    print("var obj value(sddp): ", np.mean(obj_sddp_vars))
+    print("var obj value(msp): ", np.mean(obj_msp_vars))
 
 
 def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, fold):
@@ -224,10 +245,10 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     test_dataloader = DataLoader(test_dataset, batch_size=args.num_stages)
 
     _, _, _, _, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
-                                                                                          dataloader=test_dataloader,
-                                                                                          args=args,
-                                                                                          cnt_cuts=1,
-                                                                                          device=device)
+                                                                                                dataloader=test_dataloader,
+                                                                                                args=args,
+                                                                                                cnt_cuts=1,
+                                                                                                device=device)
 
     with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
         target_cuts = pickle.load(fr)
@@ -359,4 +380,5 @@ if __name__ == "__main__":
                         choices=['MSE', 'MSE_CE'])
     parser.add_argument('--stage_information', type=str, default="ratio", choices=["ratio", "rest"])
     parser.add_argument('--dataset', type=str, default="None")
+    parser.add_argument('--model', type=str, default='transformer', choices=['transformer', 'transformer_decoder'])
     main(parser.parse_args())

@@ -7,6 +7,8 @@ import os
 
 
 def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
+    x = np.array(range(-500, 500))
+
     var_name = ""
     if args.prob == "ProductionPlanning":
         var_start_idx = 6
@@ -14,6 +16,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
         var_start_idx = 1
         var_name = "reservoir final"
     elif args.prob == "MertonsPortfolioOptimization":
+        x = x/5
         var_start_idx = 0
         if var_idx == 0:
             var_name = "stock"
@@ -22,7 +25,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     else:
         raise NotImplementedError
 
-    x = np.array(range(-500, 500))
+
 
     # fig, ax = plt.subplots(2, 3, figsize=(20, 15), sharex=True)
     fig, ax = plt.subplots(3, 2, figsize=(16, 24), sharex='all', sharey='row')

@@ -16,36 +16,45 @@ class Transformer(nn.Module):
         # self.embed = nn.Embedding(num_embeddings=n_embed, embedding_dim=dim_embed)
         self.linear_src = nn.Linear(src_dim, d_model)
         # self.linear_src = nn.Linear(src_dim + dim_embed - 1, d_model)
-        self.linear_tgt = nn.Linear(tgt_dim + 2, d_model)
-        self.transformer = nn.Transformer(
-            d_model=d_model,
-            nhead=nhead,
-            num_encoder_layers=num_encoder_layers,
-            num_decoder_layers=num_decoder_layers,
-            dropout=dropout,
-            batch_first=True,
-        )
-        self.linear_out = nn.Linear(d_model, tgt_dim + 2)
+        self.linear_tgt = nn.Linear(tgt_dim + 3, d_model)
+        # self.transformer = nn.Transformer(
+        #     d_model=d_model,
+        #     nhead=nhead,
+        #     num_encoder_layers=num_encoder_layers,
+        #     num_decoder_layers=num_decoder_layers,
+        #     dropout=dropout,
+        #     batch_first=True,
+        # )
+
+        decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)
+        decoder_norm = nn.LayerNorm(d_model)
+        self.decoder = nn.TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm)
+
+        self.linear_out = nn.Linear(d_model, tgt_dim + 3)
 
     def forward(self, src, tgt, tgt_mask=None, src_pad_mask=None, tgt_pad_mask=None):
         # src, tgt size = (batch_size, sequence length)
 
         # fc + positional encoding => output size = (batch_size, sequence length, d_model)
         # stage_embed = self.embed(torch.mul(src[:, :, -1], self.n_stage-1).long())
-        token_encoding = F.one_hot(tgt[:, :, -1].to(torch.long), num_classes=3)
+        token_encoding = F.one_hot(tgt[:, :, -1].to(torch.long), num_classes=4)
         tgt = torch.concat((tgt[:, :, :-1], token_encoding), dim=2)
         # stage_embed = self.embed(src[:, :, -1].long())
         # src = torch.concat((src[:, :, :-1], stage_embed), dim=2)
+        # src = torch.flatten(src, start_dim=1)
         src = self.linear_src(src) # self.linear_src(src[:, :, :-1])
 
         # src = self.positional_encoding(src)
         tgt = self.linear_tgt(tgt)
         tgt = self.positional_encoding(tgt)
 
-        transformer_out, encoder_weights, decoder_weights_sa, decoder_weights_mha = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
-        out = self.linear_out(transformer_out)
+        # transformer_out, encoder_weights, decoder_weights_sa, decoder_weights_mha = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
+        # out = self.linear_out(transformer_out)
 
-        return out, encoder_weights, decoder_weights_sa, decoder_weights_mha
+        decoder_out, decoder_weights_sa, decoder_weights_mha = self.decoder(tgt, src, tgt_mask=tgt_mask, tgt_key_padding_mask=tgt_pad_mask)
+        out = self.linear_out(decoder_out)
+
+        return out, [], decoder_weights_sa, decoder_weights_mha # out, encoder_weights, decoder_weights_sa, decoder_weights_mha
 
     def get_tgt_mask(self, size) -> torch.tensor:
         mask = torch.tril(torch.ones(size, size) == 1).float() # Lower triangular matrix

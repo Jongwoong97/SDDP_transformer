@@ -100,12 +100,12 @@ def get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap):
 
 
 if __name__ == '__main__':
-    load_path = "D:/sddp_data/EnergyPlanning/stages_7/sample/long_iteration/origin"
+    load_path = "D:/sddp_data/EnergyPlanning/stages_15/sample/long_iteration"
 
     with open(os.path.join(load_path, "objective.pickle"), "rb") as fr:
         data_obj = pickle.load(fr)
 
-    with open(os.path.join(load_path, "ti me.pickle"), "rb") as fr:
+    with open(os.path.join(load_path, "time.pickle"), "rb") as fr:
         data_time = pickle.load(fr)
 
     with open(os.path.join(load_path, "opt_gap.pickle"), "rb") as fr:
@@ -119,7 +119,6 @@ if __name__ == '__main__':
     data_lb = [data_ub[i] - data_opt_gap[i] for i in range(len(data_opt_gap))]
 
     get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap)
-
 
     get_iter_time_graph_sddp(data_time)
 
