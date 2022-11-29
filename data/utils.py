@@ -262,13 +262,13 @@ if __name__ == "__main__":
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
 
-    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers",
-    #                         save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
-    #                         max_length=79)
+    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict",
+                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/change_loss",
+                            max_length=79)
 
-    change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
-                             save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss/stage_information_rest/integer_stage_inform",
-                             n_stages=7)
+    # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
+    #                          save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss/stage_information_rest/integer_stage_inform",
+    #                          n_stages=7)
     #
 
     # change_stage_information_to_ratio(load_path="D:/sddp_data/EnergyPlanning/stages_15/predict/change_loss/stage_information_rest/integer_stage_inform",

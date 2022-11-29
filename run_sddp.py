@@ -71,8 +71,8 @@ def run_SDDP(args):
         #     print("---" * 20)
         #     return solution_list[-1]["stage0"], objective_list[-1]["stage0"], time.time() - start, None
 
-        # if done:
-        if idx >= 100:
+        if done:
+        # if idx >= 100:
             print("---" * 20)
             break
 
@@ -123,14 +123,17 @@ def main(process):
     print("------------test stages: {}-------------".format(args.num_stages))
     print("------------test episode: {}-------------".format(args.max_episode))
     times = []
+    obj_values = []
     for i in range(args.max_episode):
         solution, obj_value, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args)
         times.append(sum(time_list))
+        obj_values.append(obj_value[-1]["stage0"])
         # save_sample_data(solution, obj_value, cut_list, args.sample_type)
         if len(obj_value) >= 100:
             save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
 
         print("mean time: ", np.mean(times))
+        print("obj values var: ", np.std(obj_values))
         # save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "target", args)
 
         # if sddp is None:

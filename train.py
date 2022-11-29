@@ -323,9 +323,8 @@ def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
                 pred_cut_ex = pred_cut
             elif idx == 20:
                 break
-    return np.mean(errors_pred), np.mean(errors_sddp), np.var(errors_pred), np.var(errors_sddp), np.var(
-        obj_preds), np.var(obj_sddps), np.var(
-        obj_msps), pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
+    return np.mean(errors_pred), np.mean(errors_sddp), np.std(errors_pred), np.std(errors_sddp), np.std(obj_preds), np.std(obj_sddps), np.std(obj_msps), \
+           pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
 
 
 def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
@@ -339,10 +338,10 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     else:
         max_length = 100
 
-    temp = time.time()
+    # temp = time.time()
     y_input, encoder_weights, decoder_weights_sa, decoder_weights_mha = get_pred_cuts(X, y, cnt_cuts, model, device,
                                                                                       max_length)
-    print("computation time: ", (time.time() - temp))
+    # print("computation time: ", (time.time() - temp))
     if idx == 0:
         pred_cut_ex = get_all_stage_cuts(y_input, args, device)
     else:

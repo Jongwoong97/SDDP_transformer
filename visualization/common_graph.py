@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
 import os
+import pandas as pd
 
 # parameters = {'axes.labelsize': 20,
 #               'axes.titlesize': 20,
@@ -12,11 +13,11 @@ import os
 #               'ytick.labelsize': 15,
 #               'legend.fontsize': 10}
 
-parameters = {'axes.labelsize': 12,
-              'axes.titlesize': 12,
+parameters = {'axes.labelsize': 15,
+              'axes.titlesize': 20,
               'xtick.labelsize': 10,
               'ytick.labelsize': 10,
-              'legend.fontsize': 10}
+              'legend.fontsize': 15}
 
 plt.rcParams.update(parameters)
 
@@ -98,46 +99,109 @@ def get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap):
     plt.show()
 
 
+def get_leaning_evaluation_graph(load_path, save_path):
+    problem = "EP"
+    stage = "stage7"
+    models = ["transformer", "transformer(decoder)"]
+    evaluation_metrics = ["loss", "infeasibility", "error"]
+    modes = ["train", "validation"]
+
+    def lineplot(datas, data_labels, x="Step", y="Value", x_label="epoch", y_label="value", title=None):
+        plt.figure(figsize=(20, 10))
+        plt.grid(color="gray", alpha=0.5, linestyle="--")
+        plt.title(title)
+        plt.xlabel(x_label)
+        plt.ylabel(y_label)
+
+        for i in range(len(datas)):
+            plt.plot(datas[i][x], datas[i][y], color='royalblue' if i==0 else 'salmon', label=data_labels[i], linestyle="-" if i==0 else "--")
+        plt.legend()
+        plt.savefig(os.path.join(save_path, title + ".png"))
+        plt.close()
+
+    for metric in evaluation_metrics:
+        if metric == "infeasibility":
+            datas = []
+            data_labels = []
+            for model in models:
+                datas.append(pd.read_csv(os.path.join(load_path, problem + "_" + stage + "_" + model + "_" + metric + ".csv"), index_col=0))
+                data_labels.append("SDDP-" + model.title())
+
+            lineplot(datas, data_labels, y_label=metric + " ratio", title=metric.title())
+            continue
+
+        for mode in modes:
+            datas = []
+            data_labels = []
+            for model in models:
+                datas.append(pd.read_csv(os.path.join(load_path, problem + "_" + stage + "_" + model + "_" + metric + "_" + mode + ".csv"), index_col=0))
+                data_labels.append("SDDP-" + model.title())
+            lineplot(datas, data_labels, y_label=metric, title=metric.title() + f"({mode})")
+
+
+def get_time_comparison_graph():
+    x = np.arange(0, 100)
+
+    plt.figure(figsize=(20, 10))
+    plt.grid(color="gray", alpha=0.5, linestyle="--")
+    plt.title("Total Computation Time per # Problems")
+    plt.xlabel("# problems")
+    plt.ylabel("computation time (s)")
+
+    plt.plot(x, 331.58*x, label="MSP", linestyle=':', color='gold')
+    plt.plot(x, 183.01*x, label="SDDP", linestyle="--", color='blue')
+    plt.plot(x, 119*60+1.99*x, label="SDDP-Transformer", color='red')
+    plt.plot(x, 99*60+1.71*x, label="SDDP-Transformer(decoder)", linestyle=(0, (3, 1, 1, 1)), color='m')
+    plt.plot(0, 119*60, 'rD', label='SDDP-Transformer: training time')
+    plt.plot(0, 99 * 60, 'mD', label='SDDP-Transformer(decoder): training time')
+
+    plt.legend()
+    plt.show()
 
 if __name__ == '__main__':
-    load_path = "D:/sddp_data/EnergyPlanning/stages_15/sample/long_iteration"
+    # load_path = "D:/sddp_data/EnergyPlanning/stages_15/sample/long_iteration"
+    #
+    # with open(os.path.join(load_path, "objective.pickle"), "rb") as fr:
+    #     data_obj = pickle.load(fr)
+    #
+    # with open(os.path.join(load_path, "time.pickle"), "rb") as fr:
+    #     data_time = pickle.load(fr)
+    #
+    # with open(os.path.join(load_path, "opt_gap.pickle"), "rb") as fr:
+    #     data_opt_gap = pickle.load(fr)
+    #
+    # with open(os.path.join(load_path, "ub.pickle"), "rb") as fr:
+    #     data_ub = pickle.load(fr)
+    #
+    # data_opt_gap = [800] + data_opt_gap
+    # data_ub = [800] + data_ub
+    # data_lb = [data_ub[i] - data_opt_gap[i] for i in range(len(data_opt_gap))]
+    #
+    # get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap)
+    #
+    # get_iter_time_graph_sddp(data_time)
+    #
+    # stage_0_objs = []
+    # cnt = 0
+    # for d in data_obj:
+    #     stage_0_objs.append(d['stage0'])
+    #     cnt += 1
+    #
+    # # obj_diff = []
+    # # for i in range(1, len(data)):
+    # #     obj_diff.append((data[i]['stage0']-data[i-1]['stage0'])/data[-1]['stage0'])
+    #
+    # get_2dim_graph(x=np.arange(len(stage_0_objs)),
+    #                y=stage_0_objs,
+    #                x_label='iteration',
+    #                y_label='obj value')
+    #
+    # with open("D:/sddp_data/EnergyPlanning/stages_7/train/original/{}.pickle".format("labels"), "rb") as fr:
+    #     data_obj = pickle.load(fr)
+    #
+    # get_dist_graph(get_shape_inform(data_obj), x_label="# of cutting planes", y_label="count")
 
-    with open(os.path.join(load_path, "objective.pickle"), "rb") as fr:
-        data_obj = pickle.load(fr)
+    # get_leaning_evaluation_graph(load_path="D:/sddp_data/EnergyPlanning/result/tensorboardresult",
+    #                              save_path="D:/sddp_data/EnergyPlanning/result/tensorboardresult/graph")
 
-    with open(os.path.join(load_path, "time.pickle"), "rb") as fr:
-        data_time = pickle.load(fr)
-
-    with open(os.path.join(load_path, "opt_gap.pickle"), "rb") as fr:
-        data_opt_gap = pickle.load(fr)
-
-    with open(os.path.join(load_path, "ub.pickle"), "rb") as fr:
-        data_ub = pickle.load(fr)
-
-    data_opt_gap = [800] + data_opt_gap
-    data_ub = [800] + data_ub
-    data_lb = [data_ub[i] - data_opt_gap[i] for i in range(len(data_opt_gap))]
-
-    get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap)
-
-    get_iter_time_graph_sddp(data_time)
-
-    stage_0_objs = []
-    cnt = 0
-    for d in data_obj:
-        stage_0_objs.append(d['stage0'])
-        cnt += 1
-
-    # obj_diff = []
-    # for i in range(1, len(data)):
-    #     obj_diff.append((data[i]['stage0']-data[i-1]['stage0'])/data[-1]['stage0'])
-
-    get_2dim_graph(x=np.arange(len(stage_0_objs)),
-                   y=stage_0_objs,
-                   x_label='iteration',
-                   y_label='obj value')
-
-    with open("D:/sddp_data/EnergyPlanning/stages_7/train/original/{}.pickle".format("labels"), "rb") as fr:
-        data_obj = pickle.load(fr)
-
-    get_dist_graph(get_shape_inform(data_obj), x_label="# of cutting planes", y_label="count")
+    get_time_comparison_graph()

@@ -64,7 +64,7 @@ class EnergyPlanning(object):
     def get_params(self):
         # mu = np.random.uniform(self.water_inflow_mean_low, self.water_inflow_mean_high)
         # std = np.random.uniform(self.water_inflow_std_low, self.water_inflow_std_high)
-        mu = 22.5
+        mu = 20
         std = 5
         return mu, std
 
