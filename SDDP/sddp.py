@@ -7,7 +7,6 @@ import scipy.stats as st
 
 from collections import Counter
 
-
 __all__ = [
     "SDDP"
 ]
@@ -45,9 +44,10 @@ class SDDP:
         self.cuts["stage{}".format(self.n_stage - 1)] = {"gradient": None, "constant": None}
 
         # Scenario related
-        self.scenario_tree_node = 5
-        self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=False)
+        self.scenario_tree_node = 3
+        self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
+            num_node=self.scenario_tree_node,
+            moment_matching=True)
         self.scenario = None
 
         # Forward pass related
@@ -78,8 +78,9 @@ class SDDP:
 
         # Scenario related
         self.scenario_tree_node = 5
-        self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(num_node=self.scenario_tree_node,
-                                                                  moment_matching=False)
+        self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
+            num_node=self.scenario_tree_node,
+            moment_matching=False)
         self.scenario = None
 
     def generate_scenarios(self, scenario_trees):
@@ -113,10 +114,12 @@ class SDDP:
                                                              stage.hydro.value, stage.thermal.value]
                 prev_solution = stage.final_water.value
             elif self.prob_name == "ProductionPlanning":
-                solution_set["stage{}".format(stage_idx)] = [stage.production.value, stage.outsource.value, stage.storage.value]
+                solution_set["stage{}".format(stage_idx)] = [stage.production.value, stage.outsource.value,
+                                                             stage.storage.value]
                 prev_solution = stage.storage.value
             elif self.prob_name == "MertonsPortfolioOptimization":
-                solution_set["stage{}".format(stage_idx)] = [stage.stock.value, stage.bond.value, stage.consumption.value]
+                solution_set["stage{}".format(stage_idx)] = [stage.stock.value, stage.bond.value,
+                                                             stage.consumption.value]
                 prev_solution = np.array([stage.stock.value, stage.bond.value])
             else:
                 raise NotImplementedError
@@ -130,7 +133,8 @@ class SDDP:
             scenario_list.append(scenario)
 
             objective_value, value_function, solution_set = self.forward_pass_one_sample(scenario=scenario)
-            upper_bound_samples.append(sum(np.array(list(objective_value.values())) - np.array(list(value_function.values()))))
+            upper_bound_samples.append(
+                sum(np.array(list(objective_value.values())) - np.array(list(value_function.values()))))
             obj_val_list.append(objective_value)
             value_func_list.append(value_function)
             solution_list.append(solution_set)
@@ -184,4 +188,3 @@ class SDDP:
         z = st.norm.ppf(1 - alpha / 2)
         optimality_gap = ub + z * ub_se - lb
         return optimality_gap, optimality_gap < self.threshold, ub + z * ub_se
-

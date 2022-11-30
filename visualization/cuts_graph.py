@@ -217,6 +217,7 @@ def get_cut_graph_stage0(target_cut, pred_cut, var_idx, args, save_path):
 
 
 def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
+    x = np.arange(-500, 500)
     var_name = ""
     if args.prob == "ProductionPlanning":
         var_start_idx = 6
@@ -224,6 +225,7 @@ def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
         var_start_idx = 1
         var_name = "reservoir final"
     elif args.prob == "MertonsPortfolioOptimization":
+        x = x/5
         var_start_idx = 0
         if var_idx == 0:
             var_name = "stock"
@@ -231,8 +233,6 @@ def get_sample_scenario_cuts_graph(cuts, pred_cut, var_idx, args):
             var_name = "bond"
     else:
         raise NotImplementedError
-
-    x = np.arange(-500, 500)
 
     fig, ax = plt.subplots(2, 3, figsize=(21, 14))
     for stage in range(len(cuts)):

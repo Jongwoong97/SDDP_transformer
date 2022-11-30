@@ -17,18 +17,18 @@ class Transformer(nn.Module):
         self.linear_src = nn.Linear(src_dim, d_model)
         # self.linear_src = nn.Linear(src_dim + dim_embed - 1, d_model)
         self.linear_tgt = nn.Linear(tgt_dim + 3, d_model)
-        # self.transformer = nn.Transformer(
-        #     d_model=d_model,
-        #     nhead=nhead,
-        #     num_encoder_layers=num_encoder_layers,
-        #     num_decoder_layers=num_decoder_layers,
-        #     dropout=dropout,
-        #     batch_first=True,
-        # )
+        self.transformer = nn.Transformer(
+            d_model=d_model,
+            nhead=nhead,
+            num_encoder_layers=num_encoder_layers,
+            num_decoder_layers=num_decoder_layers,
+            dropout=dropout,
+            batch_first=True,
+        )
 
-        decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)
-        decoder_norm = nn.LayerNorm(d_model)
-        self.decoder = nn.TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm)
+        # decoder_layer = nn.TransformerDecoderLayer(d_model=d_model, nhead=nhead, dropout=dropout, batch_first=True)
+        # decoder_norm = nn.LayerNorm(d_model)
+        # self.decoder = nn.TransformerDecoder(decoder_layer, num_decoder_layers, decoder_norm)
 
         self.linear_out = nn.Linear(d_model, tgt_dim + 3)
 
@@ -48,11 +48,11 @@ class Transformer(nn.Module):
         tgt = self.linear_tgt(tgt)
         tgt = self.positional_encoding(tgt)
 
-        # transformer_out, encoder_weights, decoder_weights_sa, decoder_weights_mha = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
-        # out = self.linear_out(transformer_out)
+        transformer_out, encoder_weights, decoder_weights_sa, decoder_weights_mha = self.transformer(src, tgt, tgt_mask=tgt_mask, src_key_padding_mask=src_pad_mask, tgt_key_padding_mask=tgt_pad_mask)
+        out = self.linear_out(transformer_out)
 
-        decoder_out, decoder_weights_sa, decoder_weights_mha = self.decoder(tgt, src, tgt_mask=tgt_mask, tgt_key_padding_mask=tgt_pad_mask)
-        out = self.linear_out(decoder_out)
+        # decoder_out, decoder_weights_sa, decoder_weights_mha = self.decoder(tgt, src, tgt_mask=tgt_mask, tgt_key_padding_mask=tgt_pad_mask)
+        # out = self.linear_out(decoder_out)
 
         return out, [], decoder_weights_sa, decoder_weights_mha # out, encoder_weights, decoder_weights_sa, decoder_weights_mha
 

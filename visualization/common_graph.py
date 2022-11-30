@@ -100,7 +100,7 @@ def get_ub_lb_graph_sddp(data_lb, data_ub, data_opt_gap):
 
 
 def get_leaning_evaluation_graph(load_path, save_path):
-    problem = "EP"
+    problem = "FP"
     stage = "stage7"
     models = ["transformer", "transformer(decoder)"]
     evaluation_metrics = ["loss", "infeasibility", "error"]
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     #
     # get_dist_graph(get_shape_inform(data_obj), x_label="# of cutting planes", y_label="count")
 
-    # get_leaning_evaluation_graph(load_path="D:/sddp_data/EnergyPlanning/result/tensorboardresult",
-    #                              save_path="D:/sddp_data/EnergyPlanning/result/tensorboardresult/graph")
+    get_leaning_evaluation_graph(load_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult",
+                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult/graph")
 
-    get_time_comparison_graph()
+    # get_time_comparison_graph()

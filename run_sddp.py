@@ -72,7 +72,6 @@ def run_SDDP(args):
         #     return solution_list[-1]["stage0"], objective_list[-1]["stage0"], time.time() - start, None
 
         if done:
-        # if idx >= 100:
             print("---" * 20)
             break
 

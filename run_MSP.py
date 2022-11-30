@@ -5,12 +5,12 @@ import time
 def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
 
     # Paramter setting ========================================================
-    h_cost = 2
-    t_cost = 7
+    h_cost = 2.0
+    t_cost = 7.0
     utility_coeff = 0.1
-    utility_scale = 5
-    initial_reservoir = 40
-    demand = 20
+    utility_scale = 5.0
+    initial_reservoir = 40.0
+    demand = 20.0
     # =========================================================================
 
     mean = paramdict['mean']
@@ -25,7 +25,6 @@ def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
             rescaled = normalized_batch_sample*scale
             rescaled = rescaled + mean
             scenarios.append(rescaled)
-            print("here")
         else:
             scenarios.append(batch_sample)
     number_of_current_node = 1
@@ -59,10 +58,10 @@ def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
         return stagewise_Indice[cur_Stage-1][quotient], remainder
 
     # STAGE 0
-    water_init_0 = cp.Variable(nonneg=True)
-    water_final_0 = cp.Variable(nonneg=True)
-    hydro_0 = cp.Variable(nonneg=True)
-    thermal_0 = cp.Variable(nonneg=True)
+    water_init_0 = cp.Variable()
+    water_final_0 = cp.Variable()
+    hydro_0 = cp.Variable()
+    thermal_0 = cp.Variable()
     totVars = [(water_init_0, water_final_0, hydro_0, thermal_0)]
 
     objective = hydro_0*h_cost + thermal_0*t_cost + cp.exp(-utility_coeff*water_final_0 + utility_scale)
@@ -70,18 +69,18 @@ def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
     constraints += [water_init_0 == initial_reservoir]  # Initial condition
     constraints += [water_final_0 == water_init_0 - hydro_0]  # water level balance
     constraints += [hydro_0 + thermal_0 >= demand]  # stage 0 demand
-    # for idx, var in enumerate([water_init_0, water_final_0, hydro_0, thermal_0]):
-    #     constraints += [var >= 0]  # Non-negativity
+    for idx, var in enumerate([water_init_0, water_final_0, hydro_0, thermal_0]):
+        constraints += [var >= 0]  # Non-negativity
 
     for stage, indSet in enumerate(stagewise_Indice):
         node_probability = 1/len(indSet)
         # Stage t problem
         if stage > 0:
             for nodeIdx in indSet:
-                water_init_t = cp.Variable(nonneg=True)
-                water_final_t = cp.Variable(nonneg=True)
-                hydro_t = cp.Variable(nonneg=True)
-                thermal_t = cp.Variable(nonneg=True)
+                water_init_t = cp.Variable()
+                water_final_t = cp.Variable()
+                hydro_t = cp.Variable()
+                thermal_t = cp.Variable()
                 totVars.append((water_init_t, water_final_t, hydro_t, thermal_t))
 
                 objective += node_probability*(hydro_t*h_cost + thermal_t*t_cost + cp.exp(-utility_coeff*water_final_t + utility_scale))
@@ -92,8 +91,8 @@ def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
                 constraints += [water_init_t == prevVar[1] + R]  # Initial water level
                 constraints += [water_final_t == water_init_t - hydro_t]  # water level balance
                 constraints += [hydro_t + thermal_t >= demand]  # stage 0 demand
-                # for idx, var in enumerate([water_init_t, water_final_t, hydro_t, thermal_t]):
-                #     constraints += [var >= 0]  # Non-negativity
+                for idx, var in enumerate([water_init_t, water_final_t, hydro_t, thermal_t]):
+                    constraints += [var >= 0]  # Non-negativity
 
     problem = cp.Problem(cp.Minimize(objective), constraints)
     print('Problem Defined. Now Solving...')
@@ -244,5 +243,5 @@ def MSP_FP(stageNum=11, scenario_node=2, mm=True, paramdict={}):
 
 
 if __name__ == '__main__':
-    MSP_EP(stageNum=6, scenario_node=5, paramdict={'mean': 20, 'scale': 5}, mm=True)
+    MSP_EP(stageNum=9, scenario_node=3, paramdict={'mean': 20.0, 'scale': 5.0}, mm=True)
     # MSP_FP(stageNum=10, scenario_node=2, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)

@@ -84,7 +84,7 @@ def main(args):
             sigma = 5
         elif args.prob == "MertonsPortfolioOptimization":
             mu = 0.06
-            sigma = 0.2
+            sigma = 0.25
         else:
             raise NotImplementedError
         x_raw_data, y_raw_data = get_sample_data(args, mu, sigma)
@@ -118,7 +118,7 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         data_split = splits.split(np.arange(len(dataset)))
 
     for fold, (train_idx, val_idx) in enumerate(data_split):
-        # if fold < 5:
+        # if fold < 2:
         #     continue
         train_sampler = SubsetSequentialSampler(train_idx)
         val_sampler = SubsetSequentialSampler(val_idx)
@@ -247,15 +247,15 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     obj_pred = []
     obj_sddp = []
     obj_msp = []
-    for i in range(20):
-        _, _, _, _, obj_preds, obj_sddps, obj_msps, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
-                                                                                                    dataloader=test_dataloader,
-                                                                                                    args=args,
-                                                                                                    cnt_cuts=1,
-                                                                                                    device=device)
-        obj_pred += obj_preds
-        obj_sddp += obj_sddps
-        obj_msp += obj_msps
+    # for i in range(20):
+    _, _, _, _, obj_preds, obj_sddps, obj_msps, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
+                                                                                                                                dataloader=test_dataloader,
+                                                                                                                                args=args,
+                                                                                                                                cnt_cuts=1,
+                                                                                                                                device=device)
+    obj_pred += obj_preds
+    obj_sddp += obj_sddps
+    obj_msp += obj_msps
     print("obj pred: ", np.std(obj_pred))
     print("obj sddp: ", np.std(obj_sddp))
     print("obj msp: ", np.std(obj_msp))
@@ -276,7 +276,7 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     # sigma = 5
 
     mu = 0.06
-    sigma = 0.2
+    sigma = 0.25
     with open(
             os.path.join('D:/sddp_data/{}/stages_7/sample_scenario/mu{}_sigma{}', "labels.pickle").format(args.prob, mu,
                                                                                                           sigma),
