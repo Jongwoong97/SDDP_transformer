@@ -239,31 +239,31 @@ if __name__ == "__main__":
         EnergyPlanning: 7~80
         MertonsPortfolioOptimization: 40
     """
-    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_7/train",
-    #                save_path="D:/sddp_data/EnergyPlanning/stages_7/train/except_outliers",
-    #                low=7,
-    #                high=80)
+    # except_outlier(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train",
+    #                save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers",
+    #                low=0,
+    #                high=40)
 
     """
         idx_delete_start, idx_delete_end:
         EnergyPlanning: 16, 24
         MertonsPortfolioOptimization: 18, 26
     """
-    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/original",
-    #                           save_path="D:/sddp_data/EnergyPlanning/stages_7/train",
+    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/original",
+    #                           save_path="D:/sddp_data/EnergyPlanning/stages_10/train",
     #                           idx_delete_start=16,
     #                           idx_delete_end=24)
 
-    # delete_objective_function(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/original/except_outliers",
-    #                           save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/except_outliers",
+    # delete_objective_function(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/predict/original",
+    #                           save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/predict",
     #                           idx_delete_start=18,
     #                           idx_delete_end=26)
 
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
-
-    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict",
-                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/predict/change_loss",
+    #
+    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers",
+                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers/change_loss",
                             max_length=79)
 
     # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",

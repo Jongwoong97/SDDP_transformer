@@ -95,19 +95,19 @@ def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
                     constraints += [var >= 0]  # Non-negativity
 
     problem = cp.Problem(cp.Minimize(objective), constraints)
-    print('Problem Defined. Now Solving...')
+    # print('Problem Defined. Now Solving...')
     try:
-        problem.solve(verbose=True, solver=cp.MOSEK)
+        problem.solve(verbose=False, solver=cp.MOSEK)
     except:
         problem.solve(verbose=True, solver=cp.ECOS)
     optStage0 = [float(item.value) for item in totVars[0]]
     optStage0_n = [str(item) for item in totVars[0]]
     pt = [item + ': ' + str(optStage0[idx]) + ',' for idx, item in enumerate(optStage0_n)]
-    print('===========================================================================')
-    print('optimalObj: ', problem.value)
-    print('optimalVal: ', pt)
-    print('Time:', time.time() - start)
-    print('===========================================================================')
+    # print('===========================================================================')
+    # print('optimalObj: ', problem.value)
+    # print('optimalVal: ', pt)
+    # print('Time:', time.time() - start)
+    # print('===========================================================================')
     optStage0 = [item.value for item in totVars[0]]
     return optStage0, problem.value
 
@@ -135,7 +135,7 @@ def MSP_FP(stageNum=11, scenario_node=2, mm=True, paramdict={}):
     delta_t = 1/(stageNum - 1)
     sqrt_dt = np.sqrt(delta_t)
     mmu = mu - (1/2)*sigma**2
-    smallm = 0.000001
+    smallm = 1
     scenarios = [[]]
     for _ in range(stageNum - 1):
         batch_sample = np.random.standard_normal(size=scenario_node)
@@ -243,5 +243,5 @@ def MSP_FP(stageNum=11, scenario_node=2, mm=True, paramdict={}):
 
 
 if __name__ == '__main__':
-    MSP_EP(stageNum=9, scenario_node=3, paramdict={'mean': 20.0, 'scale': 5.0}, mm=True)
-    # MSP_FP(stageNum=10, scenario_node=2, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)
+    # MSP_EP(stageNum=10, scenario_node=3, paramdict={'mean': 20.0, 'scale': 5.0}, mm=True)
+    MSP_FP(stageNum=10, scenario_node=3, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)

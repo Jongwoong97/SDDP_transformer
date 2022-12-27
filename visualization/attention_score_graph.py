@@ -11,8 +11,8 @@ parameters = {'axes.labelsize': 12,
 
 plt.rcParams.update(parameters)
 
-def plot_head_map(mma, target_labels, source_labels):
 
+def plot_head_map(mma, target_labels, source_labels):
     # sns.set_palette("pastel", 2)
     ax = sns.heatmap(mma.T, annot=True, fmt=".2f", cmap="Reds", xticklabels=True, yticklabels=True)
     ax.set_xticks(ticks=np.arange(mma.shape[0])+0.5, labels=target_labels)
@@ -24,6 +24,7 @@ def plot_head_map(mma, target_labels, source_labels):
     plt.xlabel("target")
     plt.ylabel("source")
     plt.show()
+
 
 def read_plot_alignment_matrices(source_labels, target_labels, alpha):
     mma = alpha.cpu().data.numpy()

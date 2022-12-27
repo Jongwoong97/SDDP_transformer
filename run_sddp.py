@@ -60,12 +60,12 @@ def run_SDDP(args):
         opt_gap_list.append(opt_gap)
         ub_list.append(upper_bound)
 
-        print(f"\nObjective value: {sddp.objective_value['stage0']}")
-        print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
-        print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
-        print(f"Optimality gap: {opt_gap}")
-        print(f"total running time with iter {idx}: {time.time() - start}")
-        print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
+        # print(f"\nObjective value: {sddp.objective_value['stage0']}")
+        # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
+        # print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
+        # print(f"Optimality gap: {opt_gap}")
+        # print(f"total running time with iter {idx}: {time.time() - start}")
+        # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
         # if idx > 80:
         #     print("---" * 20)
@@ -139,16 +139,16 @@ def main(process):
         #     print("Episode {}/{} exceed max iteration".format(i + 1, args.max_episode))
         #     continue
 
-        # raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
-        # data = preprocessing(raw_data, args)
-        # save_data(data, args)
+        raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
+        data = preprocessing(raw_data, args)
+        save_data(data, args)
         print("Process {}: Episode {}/{} result saved".format(process, i + 1, args.max_episode))
 
 
 # SDDP solution
 if __name__ == '__main__':
-    # with Pool(4) as p:
-    #     p.map(main, [1, 2, 3, 4])
+    with Pool(4) as p:
+        p.map(main, [1, 2, 3, 4])
 
-    main(0)
+    # main(0)
 

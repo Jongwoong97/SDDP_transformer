@@ -14,10 +14,10 @@ import pandas as pd
 #               'legend.fontsize': 10}
 
 parameters = {'axes.labelsize': 15,
-              'axes.titlesize': 20,
-              'xtick.labelsize': 10,
-              'ytick.labelsize': 10,
-              'legend.fontsize': 15}
+              'axes.titlesize': 0,
+              'xtick.labelsize': 15,
+              'ytick.labelsize': 15,
+              'legend.fontsize': 30}
 
 plt.rcParams.update(parameters)
 
@@ -107,11 +107,12 @@ def get_leaning_evaluation_graph(load_path, save_path):
     modes = ["train", "validation"]
 
     def lineplot(datas, data_labels, x="Step", y="Value", x_label="epoch", y_label="value", title=None):
-        plt.figure(figsize=(20, 10))
+        plt.figure(figsize=(40, 7))
         plt.grid(color="gray", alpha=0.5, linestyle="--")
         plt.title(title)
         plt.xlabel(x_label)
         plt.ylabel(y_label)
+        plt.tight_layout()
 
         for i in range(len(datas)):
             plt.plot(datas[i][x], datas[i][y], color='royalblue' if i==0 else 'salmon', label=data_labels[i], linestyle="-" if i==0 else "--")
@@ -139,7 +140,7 @@ def get_leaning_evaluation_graph(load_path, save_path):
             lineplot(datas, data_labels, y_label=metric, title=metric.title() + f"({mode})")
 
 
-def get_time_comparison_graph():
+def get_time_comparison_graph(msp_time, sddp_time, sddp_t_train_time, sddp_t_eval_time, sddp_td_train_time, sddp_td_eval_time):
     x = np.arange(0, 100)
 
     plt.figure(figsize=(20, 10))
@@ -148,12 +149,12 @@ def get_time_comparison_graph():
     plt.xlabel("# problems")
     plt.ylabel("computation time (s)")
 
-    plt.plot(x, 331.58*x, label="MSP", linestyle=':', color='gold')
-    plt.plot(x, 183.01*x, label="SDDP", linestyle="--", color='blue')
-    plt.plot(x, 119*60+1.99*x, label="SDDP-Transformer", color='red')
-    plt.plot(x, 99*60+1.71*x, label="SDDP-Transformer(decoder)", linestyle=(0, (3, 1, 1, 1)), color='m')
-    plt.plot(0, 119*60, 'rD', label='SDDP-Transformer: training time')
-    plt.plot(0, 99 * 60, 'mD', label='SDDP-Transformer(decoder): training time')
+    plt.plot(x, msp_time*x, label="MSP", linestyle=':', color='gold')
+    plt.plot(x, sddp_time*x, label="SDDP", linestyle="--", color='blue')
+    plt.plot(x, sddp_t_train_time+sddp_t_eval_time*x, label="SDDP-Transformer", color='red')
+    plt.plot(x, sddp_td_train_time+sddp_td_eval_time*x, label="SDDP-Transformer(decoder)", linestyle=(0, (3, 1, 1, 1)), color='m')
+    plt.plot(0, sddp_t_train_time, 'rD', label='SDDP-Transformer: training time')
+    plt.plot(0, sddp_td_train_time, 'mD', label='SDDP-Transformer(decoder): training time')
 
     plt.legend()
     plt.show()
@@ -204,4 +205,16 @@ if __name__ == '__main__':
     get_leaning_evaluation_graph(load_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult",
                                  save_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult/graph")
 
-    # get_time_comparison_graph()
+    # get_time_comparison_graph(msp_time=331.58,
+    #                           sddp_time=183.01,
+    #                           sddp_t_train_time=119*60,
+    #                           sddp_t_eval_time=1.99,
+    #                           sddp_td_train_time=99*60,
+    #                           sddp_td_eval_time=1.71)
+
+    # get_time_comparison_graph(msp_time=229.93,
+    #                           sddp_time=93.35,
+    #                           sddp_t_train_time=95*60,
+    #                           sddp_t_eval_time=0.46,
+    #                           sddp_td_train_time=72*60,
+    #                           sddp_td_eval_time=0.33)
