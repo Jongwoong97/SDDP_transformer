@@ -44,7 +44,7 @@ class SDDP:
         self.cuts["stage{}".format(self.n_stage - 1)] = {"gradient": None, "constant": None}
 
         # Scenario related
-        self.scenario_tree_node = 3
+        self.scenario_tree_node = 5
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
             num_node=self.scenario_tree_node,
             moment_matching=True)
@@ -56,32 +56,6 @@ class SDDP:
         # Criterion related
         self.alpha = stopping_criterion_alpha
         self.threshold = stopping_criterion_threshold
-
-    def reset(self):
-        self.objective_value = None
-        self.value_func = None
-        self.solution_set = None
-        self.constraints = None
-
-        self.cuts = dict.fromkeys(["stage{}".format(x) for x in range(self.n_stage - 1)])
-        for i in range(0, self.n_stage - 1):
-            if self.prob_name == "EnergyPlanning":
-                self.cuts["stage{}".format(i)] = {"gradient": [0], "constant": [0]}
-            elif self.prob_name == "ProductionPlanning":
-                self.cuts["stage{}".format(i)] = {"gradient": [np.array([0, 0, 0])], "constant": [0]}
-            elif self.prob_name == "MertonsPortfolioOptimization":
-                self.cuts["stage{}".format(i)] = {"gradient": [np.array([0, 0])], "constant": [0]}
-            else:
-                raise NotImplementedError
-
-        self.cuts["stage{}".format(self.n_stage - 1)] = {"gradient": None, "constant": None}
-
-        # Scenario related
-        self.scenario_tree_node = 5
-        self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
-            num_node=self.scenario_tree_node,
-            moment_matching=False)
-        self.scenario = None
 
     def generate_scenarios(self, scenario_trees):
         scenario = [random.choice(nodes) for nodes in scenario_trees]
@@ -171,7 +145,6 @@ class SDDP:
 
             self.cuts["stage{}".format(stage_idx - 1)]["gradient"].append(np.mean(gradient_lst, axis=0))
             self.cuts["stage{}".format(stage_idx - 1)]["constant"].append(np.mean(constant_lst))
-        a = 0
 
     def get_lower_bound(self):
         stage_idx = 0
@@ -179,7 +152,6 @@ class SDDP:
                            prev_solution=self.prob_class.prev_solution,
                            scenario=self.scenario[stage_idx], cuts=self.cuts["stage{}".format(stage_idx)])
         stage.solve()
-        a = stage.objective_value
         return stage.objective_value
 
     def check_stopping_criterion(self, upper_bound_params, alpha=0.05):

@@ -54,18 +54,17 @@ def run_SDDP(args):
 
         solution_list.append(sddp.solution_set)
         objective_list.append(sddp.objective_value)
-        # value_function_list.append(sddp.value_func)
         cut_list.append(copy.deepcopy(sddp.cuts))
         time_list.append(time.time() - temp)
         opt_gap_list.append(opt_gap)
         ub_list.append(upper_bound)
 
-        # print(f"\nObjective value: {sddp.objective_value['stage0']}")
-        # print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
-        # print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
-        # print(f"Optimality gap: {opt_gap}")
-        # print(f"total running time with iter {idx}: {time.time() - start}")
-        # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
+        print(f"\nObjective value: {sddp.objective_value['stage0']}")
+        print(f"Solution: {np.around(np.hstack(sddp.solution_set[f'stage{0}']), 3)}")
+        print(f"Solution(stage1): {np.around(np.hstack(sddp.solution_set[f'stage{1}']), 3)}")
+        print(f"Optimality gap: {opt_gap}")
+        print(f"total running time with iter {idx}: {time.time() - start}")
+        print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
         # if idx > 80:
         #     print("---" * 20)
@@ -109,7 +108,7 @@ def main(process):
     parser = argparse.ArgumentParser(description='Pytorch SDDP_RL')
     parser.add_argument('--max_iter', type=int, default=1000,
                         help='problem to solve')
-    parser.add_argument('--prob', type=str, default='ProductionPlanning',
+    parser.add_argument('--prob', type=str, default='EnergyPlanning',
                         help='problem to solve')
     parser.add_argument('--num_stages', type=int, default=7,
                         help='Number of Stages')
@@ -117,7 +116,7 @@ def main(process):
     parser.add_argument('--save_path', type=str, default='D:/sddp_data')
     parser.add_argument('--save_mode', type=str, default='train')
     parser.add_argument('--sample_type', type=str, default="target", choices=["predict", "target"])
-    parser.add_argument('--mm', type=str, default='False', choices=['True', 'False'])
+    parser.add_argument('--mm', type=str, default='True', choices=['True', 'False'])
     args = parser.parse_args()
     print("------------test stages: {}-------------".format(args.num_stages))
     print("------------test episode: {}-------------".format(args.max_episode))
@@ -127,28 +126,22 @@ def main(process):
         solution, obj_value, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args)
         times.append(sum(time_list))
         obj_values.append(obj_value[-1]["stage0"])
-        # save_sample_data(solution, obj_value, cut_list, args.sample_type)
-        if len(obj_value) >= 100:
-            save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
-
         print("mean time: ", np.mean(times))
         print("obj values var: ", np.std(obj_values))
-        # save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "target", args)
 
-        # if sddp is None:
-        #     print("Episode {}/{} exceed max iteration".format(i + 1, args.max_episode))
-        #     continue
+        # if len(obj_value) >= 100:
+        #     save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
 
-        raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
-        data = preprocessing(raw_data, args)
-        save_data(data, args)
+        # raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
+        # data = preprocessing(raw_data, args)
+        # save_data(data, args)
         print("Process {}: Episode {}/{} result saved".format(process, i + 1, args.max_episode))
 
 
 # SDDP solution
 if __name__ == '__main__':
-    with Pool(4) as p:
-        p.map(main, [1, 2, 3, 4])
+    # with Pool(4) as p:
+    #     p.map(main, [1, 2, 3, 4])
 
-    # main(0)
+    main(0)
 
