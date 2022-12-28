@@ -38,8 +38,8 @@ def main(args):
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if args.prob == "ProductionPlanning":
-        src_dim = 57
-        tgt_dim = 14  # 11
+        src_dim = 39
+        tgt_dim = 12  # 11
     elif args.prob == "EnergyPlanning":
         src_dim = 19  # 27
         tgt_dim = 7  # 9
