@@ -17,6 +17,7 @@ def run_SDDP(args):
     max_iter = args.max_iter
     n_stages = args.num_stages
     problem = args.prob
+    level_1_dominance = args.level_1_dominance
     if problem == 'EnergyPlanning':
         prob_class = EnergyPlanning(n_stages=n_stages)
     elif problem == 'ProductionPlanning':
@@ -40,7 +41,7 @@ def run_SDDP(args):
             precuts = pickle.load(fr)
 
     # print(args.prob + ": SDDP algorithm start!")
-    sddp = SDDP(prob_class=prob_class)
+    sddp = SDDP(prob_class=prob_class, level_1_dominance=level_1_dominance)
     solution_list, objective_list, value_function_list, cut_list, time_list, opt_gap_list, ub_list = [], [], [], [], [], [], []
 
     start = time.time()
@@ -110,6 +111,7 @@ def main(process):
                         help='problem to solve')
     parser.add_argument('--prob', type=str, default='EnergyPlanning',
                         help='problem to solve')
+    parser.add_argument('--level_1_dominance', type=bool, default=False)
     parser.add_argument('--num_stages', type=int, default=7,
                         help='Number of Stages')
     parser.add_argument('--max_episode', type=int, default=100)
@@ -122,12 +124,16 @@ def main(process):
     print("------------test episode: {}-------------".format(args.max_episode))
     times = []
     obj_values = []
+    sol = []
     for i in range(args.max_episode):
         solution, obj_value, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args)
+        sol.append(solution[-1]["stage0"])
         times.append(sum(time_list))
         obj_values.append(obj_value[-1]["stage0"])
         print("mean time: ", np.mean(times))
+        print("obj values avg: ", np.mean(obj_values))
         print("obj values var: ", np.std(obj_values))
+        print("solution values avg: ", np.mean(sol, axis=0))
 
         # if len(obj_value) >= 100:
         #     save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)

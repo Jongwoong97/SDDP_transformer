@@ -14,6 +14,7 @@ __all__ = [
 
 class SDDP:
     def __init__(self, prob_class,
+                 level_1_dominance=False,
                  n_samples=20,
                  stopping_criterion_alpha=0.05,
                  stopping_criterion_threshold=0.1):
@@ -21,6 +22,7 @@ class SDDP:
         self.prob_class = prob_class
         self.prob_name = self.prob_class.prob_name
         self.n_stage = self.prob_class.n_stages
+        self.activate_dominance = level_1_dominance
 
         # SDDP related
         self.stage = self.prob_class.stage
@@ -29,6 +31,9 @@ class SDDP:
         self.value_func = None
         self.solution_set = None
         self.constraints = None
+        self.all_solution_set = dict.fromkeys(["stage{}".format(x) for x in range(self.n_stage - 1)])
+        for key in self.all_solution_set.keys():
+            self.all_solution_set[key] = []
 
         self.cuts = dict.fromkeys(["stage{}".format(x) for x in range(self.n_stage - 1)])
         for i in range(0, self.n_stage - 1):
@@ -61,6 +66,33 @@ class SDDP:
         scenario = [random.choice(nodes) for nodes in scenario_trees]
         return scenario
 
+    def level_1_dominance(self, stage_idx):
+        selected_cuts_idx = set()
+        selected_cuts = {"gradient": [], "constant": []}
+        candidate_cuts = self.cuts["stage{}".format(stage_idx)]
+        if stage_idx == self.n_stage - 1:
+            return candidate_cuts
+        else:
+            if self.all_solution_set["stage0"]:
+                for j in range(len(self.all_solution_set["stage{}".format(stage_idx)])):
+                    max_val = -10000
+                    max_idx = -1
+                    if self.prob_name == "EnergyPlanning":
+                        x = self.all_solution_set["stage{}".format(stage_idx)][j][1]
+                        for i in range(len(candidate_cuts["gradient"])):
+                            gradient = candidate_cuts["gradient"][i]
+                            constant = candidate_cuts["constant"][i]
+                            if (gradient * x + constant) > max_val:
+                                max_val = (gradient * x + constant)
+                                max_idx = i
+                    selected_cuts_idx.add(max_idx)
+            else:
+                return candidate_cuts
+            for idx in list(selected_cuts_idx):
+                selected_cuts["gradient"].append(candidate_cuts["gradient"][idx])
+                selected_cuts["constant"].append(candidate_cuts["constant"][idx])
+            return selected_cuts
+
     def one_iteration(self, do_backward_pass=True):
         upper_bound_params = self.forward_pass(n_samples=self.n_samples)
         if do_backward_pass:
@@ -76,9 +108,13 @@ class SDDP:
 
         prev_solution = self.prob_class.prev_solution
         for stage_idx in range(self.n_stage):
-
-            stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx, prev_solution=prev_solution,
-                               scenario=scenario[stage_idx], cuts=self.cuts["stage{}".format(stage_idx)])
+            if self.activate_dominance:
+                cuts = self.level_1_dominance(stage_idx)
+                stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx, prev_solution=prev_solution,
+                                   scenario=scenario[stage_idx], cuts=cuts)
+            else:
+                stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx, prev_solution=prev_solution,
+                                   scenario=scenario[stage_idx], cuts=self.cuts["stage{}".format(stage_idx)])
             stage.solve()
             objective_value["stage{}".format(stage_idx)] = stage.objective_value
             value_function["stage{}".format(stage_idx)] = stage.value_func.value
@@ -118,6 +154,8 @@ class SDDP:
         self.value_func = value_func_list[idx]
         self.solution_set = solution_list[idx]
         self.scenario = scenario_list[idx]
+        for key in self.all_solution_set.keys():
+            self.all_solution_set[key].append(solution_list[idx][key])
 
         return np.mean(upper_bound_samples), np.std(upper_bound_samples, ddof=1) / np.sqrt(n_samples)
 
@@ -136,9 +174,15 @@ class SDDP:
                 else:
                     raise NotImplementedError
 
-                stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx,
-                                   prev_solution=prev_solution,
-                                   scenario=scenario, cuts=self.cuts["stage{}".format(stage_idx)])
+                if self.activate_dominance:
+                    cuts = self.level_1_dominance(stage_idx)
+                    stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx,
+                                       prev_solution=prev_solution,
+                                       scenario=scenario, cuts=cuts)
+                else:
+                    stage = self.stage(n_stages=self.n_stage, stage_number=stage_idx,
+                                       prev_solution=prev_solution,
+                                       scenario=scenario, cuts=self.cuts["stage{}".format(stage_idx)])
                 gradient, constant = stage.generate_benders_cut()
                 gradient_lst.append(gradient)
                 constant_lst.append(constant)
