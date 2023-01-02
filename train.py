@@ -135,7 +135,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
 
         if idx % 50 == 0:
             y_infer, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
-            end_token_idx = get_end_token_idx(y_infer[0], device) + 1
+            end_token_idx = get_end_token_idx(y_infer[0]) + 1
             obj_target = get_pred_obj(y[0][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
             obj_pred = get_pred_obj(y_infer[0][:end_token_idx, :-1].detach().cpu().data.numpy(), args)
@@ -146,6 +146,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
             # print("obj_target: ", obj_target)
             # print("obj_pred: ", obj_pred)
             error_rate.append(get_error_rate(obj_pred, obj_target) / np.abs(obj_target))
+            a = 0
 
     return total_loss / len(dataloader), np.mean(error_rate), infeasible_cnt / infeasible_test_total_cnt
 
@@ -161,6 +162,8 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             max_length = 40
         else:
             max_length = 40
+    elif args.prob == "ProductionPlanning":
+        max_length = 40
     else:
         max_length = 100
     model.eval()
@@ -198,7 +201,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             if idx % 50 == 0:
                 y_infer, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
 
-                end_token_idx = get_end_token_idx(y_infer[0], device) + 1
+                end_token_idx = get_end_token_idx(y_infer[0]) + 1
                 obj_target = get_pred_obj(y[0][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
                 obj_pred = get_pred_obj(y_infer[0][:end_token_idx, :-1].detach().cpu().data.numpy(), args)
@@ -248,6 +251,8 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
             max_length = 40
         else:
             max_length = 40
+    elif args.prob == "ProductionPlanning":
+        max_length = 40
     else:
         max_length = 100
 
@@ -256,7 +261,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
                                                                                       max_length)
     # print("computation time: ", (time.time() - temp))
     if idx == 0:
-        pred_cut_ex = get_all_stage_cuts(y_input, args, device)
+        pred_cut_ex = get_all_stage_cuts(y_input, args)
     else:
         pred_cut_ex = []
 
@@ -274,7 +279,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
         else:
             raise NotImplementedError
 
-        end_token_idx = get_end_token_idx(y_input[d], device) + 1
+        end_token_idx = get_end_token_idx(y_input[d]) + 1
         obj_target = get_pred_obj(y[d][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
         obj_pred = get_pred_obj(y_input[d][:end_token_idx, :-1].detach().cpu().data.numpy(), args)
@@ -332,6 +337,7 @@ def get_pred_obj(cuts, args):
         except:
             return 0
     else:
+        constraints.append(x[:-1] >= 0)
         obj = cp.Minimize(c @ x)
         prob = cp.Problem(obj, constraints)
         prob.solve(solver=cp.CPLEX)
@@ -355,10 +361,10 @@ def get_end_token_idx(cuts_pred):
     return end_token_idx
 
 
-def get_all_stage_cuts(y, args, device):
+def get_all_stage_cuts(y, args):
     cuts = []
     for i in range(args.num_stages - 1):
-        cuts.append(y[i][:get_end_token_idx(y[i], device) + 1].detach().cpu().data.numpy())
+        cuts.append(y[i][:get_end_token_idx(y[i]) + 1].detach().cpu().data.numpy())
     return cuts
 
 
@@ -396,10 +402,12 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
             max_length = 40
         else:
             max_length = 40
+    elif args.prob == "ProductionPlanning":
+        max_length = 40
     else:
         max_length = 100
     y_inf, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
-    inf_cut_ex = get_all_stage_cuts(y_inf, args, device)
+    inf_cut_ex = get_all_stage_cuts(y_inf, args)
 
     os.makedirs("D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/inference/{}".format(args.prob, args.num_stages, args.mode,
                                                                            args.load_model, fold + 1, epoch),
@@ -425,7 +433,7 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
                       save_path="D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/inference/{}".format(args.prob, args.num_stages,
                                                                                            args.mode, args.load_model,
                                                                                            fold + 1, epoch))
-    pred_cut_ex = get_all_stage_cuts(y_pred, args, device)
+    pred_cut_ex = get_all_stage_cuts(y_pred, args)
     for i in range(num_var):
         get_cut_graph(target_cut=y_raw[:args.num_stages - 1],
                       pred_cut=pred_cut_ex,

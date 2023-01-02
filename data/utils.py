@@ -96,7 +96,7 @@ def change_dataset_order(load_path, save_path):
         pickle.dump(new_data_features, fw)
 
 
-def change_token_to_integer(load_path, save_path, max_length=100):
+def change_token_to_integer(load_path, save_path):
     if os.path.exists(load_path):
         with open(os.path.join(load_path, "labels.pickle"), "rb") as fr:
             data = pickle.load(fr)
@@ -139,6 +139,22 @@ def change_stage_information(load_path, save_path, n_stages):
     new_data = []
     for d in data:
         d[:, -1] = n_stages - d[:, -1] * (n_stages-1)
+        new_data.append(d)
+    with open(os.path.join(save_path, "features.pickle"), "wb") as fw:
+        pickle.dump(new_data, fw)
+
+
+def change_stage_information_to_origin(load_path, save_path, n_stages):
+    if os.path.exists(load_path):
+        with open(os.path.join(load_path, "features.pickle"), "rb") as fr:
+            data = pickle.load(fr)
+    else:
+        raise FileNotFoundError
+
+    os.makedirs(save_path, exist_ok=True)
+    new_data = []
+    for d in data:
+        d[:, -1] = (d[:, -1] * (n_stages-2) + 1)/(n_stages-1)
         new_data.append(d)
     with open(os.path.join(save_path, "features.pickle"), "wb") as fw:
         pickle.dump(new_data, fw)
@@ -238,9 +254,10 @@ if __name__ == "__main__":
         Threshold:
         EnergyPlanning: 7~80
         MertonsPortfolioOptimization: 40
+        ProductionPlanning: 40
     """
-    # except_outlier(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train",
-    #                save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers",
+    # except_outlier(load_path="D:/sddp_data/ProductionPlanning/stages_7/train",
+    #                save_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers",
     #                low=0,
     #                high=40)
 
@@ -248,28 +265,28 @@ if __name__ == "__main__":
         idx_delete_start, idx_delete_end:
         EnergyPlanning: 16, 24
         MertonsPortfolioOptimization: 18, 26
+        ProductionPlanning: 36, 54
     """
-    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/original",
-    #                           save_path="D:/sddp_data/EnergyPlanning/stages_10/train",
-    #                           idx_delete_start=16,
-    #                           idx_delete_end=24)
 
-    # delete_objective_function(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/predict/original",
-    #                           save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/predict",
-    #                           idx_delete_start=18,
-    #                           idx_delete_end=26)
+    # delete_objective_function(load_path="D:/sddp_data/ProductionPlanning/stages_7/train/original",
+    #                           save_path="D:/sddp_data/ProductionPlanning/stages_7/train",
+    #                           idx_delete_start=36,
+    #                           idx_delete_end=54)
 
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
     #
-    change_token_to_integer(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers",
-                            save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_10/train/except_outliers/change_loss",
-                            max_length=79)
+    change_token_to_integer(load_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers",
+                            save_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers/change_loss")
 
     # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
     #                          save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss/stage_information_rest/integer_stage_inform",
     #                          n_stages=7)
     #
+
+    # change_stage_information_to_origin(load_path="D:/sddp_data/ProductionPlanning/stages_7/train/original",
+    #                          save_path="D:/sddp_data/ProductionPlanning/stages_7/train/original/change_loss",
+    #                          n_stages=7)
 
     # change_stage_information_to_ratio(load_path="D:/sddp_data/EnergyPlanning/stages_15/predict/change_loss/stage_information_rest/integer_stage_inform",
     #                                   save_path="D:/sddp_data/EnergyPlanning/stages_15/predict/change_loss/stage_information_rest")
