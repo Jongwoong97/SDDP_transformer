@@ -1,5 +1,6 @@
 import numpy as np
 import cvxpy as cp
+from scipy.stats import truncnorm
 from envs.utils import *
 
 
@@ -20,7 +21,8 @@ class ProductionPlanning:
                  demand_mean_high=(6, 4, 2),
                  demand_std_low=(0.2, 0.1, 0.05),
                  demand_std_high=(0.4, 0.2, 0.1),
-                 random_demand=None):
+                 random_demand=None,
+                 ):
         if random_demand is None:
             random_demand = [(5, 3, 1), (6, 2, 1), (1, 2, 2)]
         self.demand_mean_low = demand_mean_low
@@ -46,31 +48,36 @@ class ProductionPlanning:
         scenarioTree = [[(0, 0, 0)]]
         demand_mean_list = []
         demand_std_list = []
-        # demand_mean, demand_std = self.get_params()
-        # for idx in range(self.n_stages - 1):
-        #     demand_mean_list.append(demand_mean)
-        #     demand_std_list.append(demand_std)
-        #     scenario = [] # pdim x num_node
-        #     for i in range(self.pdim):
-        #         batch_sample = np.random.normal(loc=demand_mean[i], scale=demand_std[i],
-        #                                         size=num_node)
-        #         batch_sample = np.clip(batch_sample, 0, None)
-        #         if moment_matching:
-        #             normalized_batch_sample = (batch_sample - np.mean(batch_sample))
-        #             normalized_batch_sample = normalized_batch_sample / np.std(batch_sample)
-        #             rescaled = normalized_batch_sample * demand_mean[i]
-        #             rescaled = rescaled + demand_mean[i]
-        #             scenario.append(rescaled.tolist())
-        #         else:
-        #             scenario.append(batch_sample.tolist())
-        #
-        #     scenarioTree.append([tuple(np.array(scenario)[:, i]) for i in range(num_node)])
+        demand_mean, demand_std = self.get_params()
+        for idx in range(self.n_stages - 1):
+            demand_mean_list.append(demand_mean)
+            demand_std_list.append(demand_std)
+            scenario = [] # pdim x num_node
+            for i in range(self.pdim):
+                lower = 0
+                upper = 10
+                mu = demand_mean[i]
+                sigma = demand_std[i]
+                batch_sample = truncnorm.rvs((lower-mu)/sigma, (upper-mu)/sigma, loc=mu, scale=sigma, size=num_node)
+                # batch_sample = np.random.normal(loc=demand_mean[i], scale=demand_std[i],
+                #                                 size=num_node)
+                # batch_sample = np.clip(batch_sample, 0, None)
+                if moment_matching:
+                    normalized_batch_sample = (batch_sample - np.mean(batch_sample))
+                    normalized_batch_sample = normalized_batch_sample / np.std(batch_sample)
+                    rescaled = normalized_batch_sample * sigma
+                    rescaled = rescaled + mu
+                    scenario.append(rescaled.tolist())
+                else:
+                    scenario.append(batch_sample.tolist())
+
+            scenarioTree.append([tuple(np.array(scenario)[:, i]) for i in range(num_node)])
 
         # demand node 고정
-        for idx in range(self.n_stages - 1):
-            demand_mean_list.append([4, 2.3, 1.3])
-            demand_std_list.append([0, 0, 0])
-            scenarioTree.append(self.random_demand)
+        # for idx in range(self.n_stages - 1):
+        #     demand_mean_list.append([4, 2.3, 1.3])
+        #     demand_std_list.append([0, 0, 0])
+        #     scenarioTree.append(self.random_demand)
         return scenarioTree, demand_mean_list, demand_std_list
 
     def get_params(self):
@@ -108,7 +115,10 @@ class ProductionPlanningStage(ProductionPlanning):
         # Parameters
         self.demand = scenario  # stage 0에서는 (0, 0, 0)
 
-        A, B, b, c = get_parameters("ProductionPlanning")
+        A = np.array([[-1, 0, 0, -1, 0, 0, 1, 0, 0],
+                      [0, -1, 0, 0, -1, 0, 0, 1, 0],
+                      [0, 0, -1, 0, 0, -1, 0, 0, 1],
+                      [1, 2, 5, 0, 0, 0, 0, 0, 0]], dtype=float)
 
         # Attributes
         self.constraints = [

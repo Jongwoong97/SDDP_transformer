@@ -2,6 +2,9 @@ import cvxpy as cp
 import numpy as np
 import time
 
+from scipy.stats import truncnorm
+
+
 def MSP_EP(stageNum=6, scenario_node=5, mm=True, paramdict={}):
 
     # Paramter setting ========================================================
@@ -241,7 +244,131 @@ def MSP_FP(stageNum=11, scenario_node=2, mm=True, paramdict={}):
     # print('===========================================================================')
     return optStage0, problem.value
 
+def MSP_PO(stageNum=6, scenario_node=5, mm=True, paramdict={}):
+    start = time.time()
+    # Paramter setting ========================================================
+    storage_c = [3, 7, 10]
+    production_c = [1, 2, 5]
+    outsouring_c = [6, 12, 20]
+    maximum_resource = 10
+    pdim = 3
+    demand_mean = [4, 2.3, 1.3]
+    demand_std = [0.2, 0.1, 0.05]
+
+    # =========================================================================
+    if 'maximum_resource' in paramdict.keys():
+        maximum_resource = paramdict['maximum_resource']
+    if 'mu' in paramdict.keys():
+        demand_mean = paramdict['mu']
+    if 'sigma' in paramdict.keys():
+        demand_std = paramdict['sigma']
+
+    scenarios = [[]]
+
+    for _ in range(stageNum - 1):
+        scenario = []  # pdim x num_node
+        for i in range(pdim):
+            lower = 0
+            upper = 10
+            mu = demand_mean[i]
+            sigma = demand_std[i]
+            batch_sample = truncnorm.rvs((lower - mu) / sigma, (upper - mu) / sigma, loc=mu, scale=sigma, size=scenario_node)
+            if mm:
+                normalized_batch_sample = (batch_sample - np.mean(batch_sample))
+                normalized_batch_sample = normalized_batch_sample / np.std(batch_sample)
+                rescaled = normalized_batch_sample * sigma
+                rescaled = rescaled + mu
+                scenario.append(rescaled.tolist())
+            else:
+                scenario.append(batch_sample.tolist())
+
+        scenarios.append([tuple(np.array(scenario)[:, i]) for i in range(scenario_node)])
+
+    number_of_current_node = 1
+    curIdx = 0
+    totIndice = []
+    stagewise_Indice = []
+    for stage in range(stageNum):
+        ind = list(range(curIdx, curIdx + number_of_current_node))
+        totIndice += ind
+        stagewise_Indice.append(ind)
+        curIdx += number_of_current_node
+        number_of_current_node = number_of_current_node*scenario_node
+    stagewise_ind_length = [len(item) for item in stagewise_Indice]
+
+    def find_stage(node: int):
+        if node == 0:
+            return 0
+        stage = 1
+        while True:
+            if node <= sum([item for stagei, item in enumerate(stagewise_ind_length) if stagei <=stage]) - 1:
+                return stage
+            stage += 1
+
+    def retrieve_parent_index(node: int):
+        cur_Stage = find_stage(node)
+        if cur_Stage < 1:
+            raise Exception('0 stage has no parent node')
+        modulo = stagewise_Indice[cur_Stage].index(node)
+        quotient = modulo // scenario_node
+        remainder = modulo % scenario_node
+        return stagewise_Indice[cur_Stage-1][quotient], remainder
+
+    # STAGE 0
+    production = cp.Variable(shape=pdim)
+    outsource = cp.Variable(shape=pdim)
+    storage = cp.Variable(shape=pdim)
+    objective = dot(storage_c, storage) + dot(outsouring_c, outsource)
+    constraints = []
+    # Initial condition
+    constraints += [dot(production_c, production) <= maximum_resource]
+    constraints += [storage[i] - p - outsource[i] == 0 for i, p in enumerate(production)]
+    # Non-negativity
+    for idx, var in enumerate([production, outsource, storage]):
+        constraints += [var >= 0]
+
+    totVars = [(production, outsource, storage)]
+    for stage, indSet in enumerate(stagewise_Indice):
+        node_probability = 1/len(indSet)
+        # Stage t problem
+        if stage > 0:
+            for nodeIdx in indSet:
+                production = cp.Variable(shape=pdim)
+                outsource = cp.Variable(shape=pdim)
+                storage = cp.Variable(shape=pdim)
+
+                totVars.append((production, outsource, storage))
+                if stage == stageNum - 1:
+                    objective += node_probability*dot(outsouring_c, outsource)
+                else:
+                    objective += node_probability*(dot(storage_c, storage) + dot(outsouring_c, outsource))
+
+                parentIdx, scenIdx = retrieve_parent_index(nodeIdx)
+                prevVar = totVars[parentIdx]
+                d = scenarios[stage][scenIdx]
+
+                # Initial condition
+                constraints += [dot(production_c, production) <= maximum_resource]
+                constraints += [storage[i] - p - outsource[i] + d[i] == prevVar[2][i] for i, p in enumerate(production)]
+                # Non-negativity
+                for idx, var in enumerate([production, outsource, storage]):
+                    constraints += [var >= 0]
+
+    problem = cp.Problem(cp.Minimize(objective), constraints)
+    # print('Problem Defined. Now Solving...')
+    problem.solve(verbose=False, solver=cp.CPLEX)
+    optStage0 = [item.value for item in totVars[0]]
+    # print('===========================================================================')
+    # print('optimalVal: ', optStage0)
+    # print('Time:', time.time() - start)
+    # print('===========================================================================')
+    return optStage0, problem.value
+
+def dot(var1, var2):
+    prod = [a*b for a, b in zip(var1, var2)]
+    return sum(prod)
 
 if __name__ == '__main__':
     # MSP_EP(stageNum=10, scenario_node=3, paramdict={'mean': 20.0, 'scale': 5.0}, mm=True)
-    MSP_FP(stageNum=10, scenario_node=3, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)
+    # MSP_FP(stageNum=10, scenario_node=3, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)
+    MSP_PO(stageNum=7, scenario_node=3, mm=True, paramdict={'mu': [4, 2.3, 1.3], 'sigma': [0.2, 0.1, 0.05]})

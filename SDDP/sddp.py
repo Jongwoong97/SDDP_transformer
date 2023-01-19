@@ -44,7 +44,7 @@ class SDDP:
         self.cuts["stage{}".format(self.n_stage - 1)] = {"gradient": None, "constant": None}
 
         # Scenario related
-        self.scenario_tree_node = 5
+        self.scenario_tree_node = 3
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
             num_node=self.scenario_tree_node,
             moment_matching=True)

@@ -254,12 +254,12 @@ if __name__ == "__main__":
         Threshold:
         EnergyPlanning: 7~80
         MertonsPortfolioOptimization: 40
-        ProductionPlanning: 40
+        ProductionPlanning: 100
     """
-    # except_outlier(load_path="D:/sddp_data/ProductionPlanning/stages_7/train",
-    #                save_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers",
+    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_10/train",
+    #                save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
     #                low=0,
-    #                high=40)
+    #                high=80)
 
     """
         idx_delete_start, idx_delete_end:
@@ -268,16 +268,16 @@ if __name__ == "__main__":
         ProductionPlanning: 36, 54
     """
 
-    # delete_objective_function(load_path="D:/sddp_data/ProductionPlanning/stages_7/train/original",
-    #                           save_path="D:/sddp_data/ProductionPlanning/stages_7/train",
-    #                           idx_delete_start=36,
-    #                           idx_delete_end=54)
+    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/mm/original",
+    #                           save_path="D:/sddp_data/EnergyPlanning/stages_10/train",
+    #                           idx_delete_start=16,
+    #                           idx_delete_end=24)
 
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
     #
-    change_token_to_integer(load_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers",
-                            save_path="D:/sddp_data/ProductionPlanning/stages_7/train/except_outliers/change_loss")
+    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
+    #                         save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers/change_loss")
 
     # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
     #                          save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss/stage_information_rest/integer_stage_inform",

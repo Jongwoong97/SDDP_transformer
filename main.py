@@ -118,6 +118,8 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         data_split = splits.split(np.arange(len(dataset)))
 
     for fold, (train_idx, val_idx) in enumerate(data_split):
+        # if fold == 0:
+        #     continue
         train_sampler = SubsetSequentialSampler(train_idx)
         val_sampler = SubsetSequentialSampler(val_idx)
 
@@ -164,9 +166,9 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     inference_error_ratio_var_sddp = []
     obj_pred_vars, obj_sddp_vars, obj_msp_vars = [], [], []
     for fold in range(1, args.kfold + 1):
+        if fold != 6:
+            continue
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
-        # if fold <= 5:
-        #     continue
         if args.load_model == 'None':
             raise FileNotFoundError("you should load a model")
         else:

@@ -1,3 +1,4 @@
+import pickle
 import time
 
 import numpy as np
@@ -6,7 +7,7 @@ import os
 from envs.utils import get_parameters
 from config import *
 import cvxpy as cp
-from run_MSP import MSP_EP, MSP_FP
+from run_MSP import *
 import torch.nn.functional as F
 
 from visualization.cuts_graph import get_cut_graph
@@ -163,7 +164,7 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
         else:
             max_length = 40
     elif args.prob == "ProductionPlanning":
-        max_length = 40
+        max_length = 100
     else:
         max_length = 100
     model.eval()
@@ -230,7 +231,7 @@ def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
             obj_msps += obj_msp
             if idx == 0:
                 pred_cut_ex = pred_cut
-            elif idx == 20:
+            elif idx == 33:
                 break
     return np.mean(errors_pred), np.mean(errors_sddp), np.std(errors_pred), np.std(errors_sddp), np.std(
         obj_preds), np.std(obj_sddps), np.std(obj_msps), \
@@ -252,7 +253,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
         else:
             max_length = 40
     elif args.prob == "ProductionPlanning":
-        max_length = 40
+        max_length = 100
     else:
         max_length = 100
 
@@ -270,26 +271,39 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     for d in range(0, X.shape[0], args.num_stages - 1):
         x_curr = X[d].detach().cpu().data.numpy()
         if args.prob == "EnergyPlanning":
-            _, optVal = MSP_EP(stageNum=args.num_stages, scenario_node=2,
-                               paramdict={'mean': x_curr[0, 16], 'scale': x_curr[0, 17]}, mm=True)
+            paramdict = {'mean': x_curr[0, 16], 'scale': x_curr[0, 17]}
+            _, optVal = MSP_EP(stageNum=args.num_stages, scenario_node=3,
+                               paramdict=paramdict, mm=True)
         elif args.prob == "MertonsPortfolioOptimization":
             sigma = x_curr[0, 12] * np.sqrt(args.num_stages - 1)
             mu = (args.num_stages - 1) * x_curr[0, 8] + sigma ** 2 / 2
-            _, optVal = MSP_FP(stageNum=args.num_stages, scenario_node=2, paramdict={'mu': mu, 'sigma': sigma}, mm=True)
+            paramdict = {'mu': mu, 'sigma': sigma}
+            _, optVal = MSP_FP(stageNum=args.num_stages, scenario_node=3, mm=True, paramdict=paramdict)
+        elif args.prob == "ProductionPlanning":
+            paramdict = {'mu': list(x_curr[:3, 36]), 'sigma': list(x_curr[:3, 37])}
+            _, optVal = MSP_PO(stageNum=args.num_stages, scenario_node=3, mm=True, paramdict=paramdict)
         else:
             raise NotImplementedError
 
         end_token_idx = get_end_token_idx(y_input[d]) + 1
         obj_target = get_pred_obj(y[d][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
-        obj_pred = get_pred_obj(y_input[d][:end_token_idx, :-1].detach().cpu().data.numpy(), args)
-        # print("obj_target", obj_target)
-        # print("obj_pred", obj_pred)
+        obj_pred = get_pred_obj(y_input[d][:end_token_idx, : -1].detach().cpu().data.numpy(), args)
+        print("obj_target", obj_target)
+        print("opt_value", optVal)
+        print("obj_pred", obj_pred)
         errors_pred.append(get_error_rate(obj_pred, optVal) / np.abs(optVal))
         errors_sddp.append(get_error_rate(obj_target, optVal) / np.abs(optVal))
         obj_preds.append(obj_pred)
         obj_sddps.append(obj_target)
         obj_msps.append(optVal)
+
+        save_obj_data(data={(args.prob, args.num_stages): {'paramdict': [paramdict],
+                                                           'MSP': [optVal],
+                                                           'SDDP': [obj_target],
+                                                           args.model: [obj_pred]}},
+                      args=args)
+
     return errors_pred, errors_sddp, obj_preds, obj_sddps, obj_msps, pred_cut_ex, [], \
            decoder_weights_sa[end_token_idx - 2][-1][0], decoder_weights_mha[end_token_idx - 2][-1][
                0]  # encoder_weights[end_token_idx-2][-1][0]
@@ -403,7 +417,7 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
         else:
             max_length = 40
     elif args.prob == "ProductionPlanning":
-        max_length = 40
+        max_length = 100
     else:
         max_length = 100
     y_inf, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
@@ -444,3 +458,36 @@ def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold,
                                                                                          args.load_model, fold + 1,
                                                                                          epoch))
     print("epoch {} (fold{}): cuts figure saved".format(epoch, fold + 1))
+
+
+def save_obj_data(data, args):
+    new_data = {}
+    list_path = ['D:/sddp_data', "obj_data"]
+    save_path = os.path.join(*list_path)
+    os.makedirs(save_path, exist_ok=True)
+
+    if not os.path.exists(os.path.join(save_path, f"{args.prob}_{args.num_stages}_{args.model}.pickle")):
+        with open(os.path.join(save_path, f"{args.prob}_{args.num_stages}_{args.model}.pickle"), "wb") as fw:
+            pickle.dump({(args.prob, args.num_stages): {
+                "paramdict": [],
+                "MSP": [],
+                "SDDP": [],
+                "transformer": [],
+                "transformer_decoder": [],
+                "L1": [],
+                "VFGL": [],
+                "neural_SDDP": [],
+            }}, fw)
+
+    with open(os.path.join(save_path, f"{args.prob}_{args.num_stages}_{args.model}.pickle"), "rb") as fr:
+        prev_data = pickle.load(fr)
+
+    for key, value in data.items():
+        prev_data[key]["paramdict"] += value["paramdict"]
+        prev_data[key]["MSP"] += value["MSP"]
+        prev_data[key]["SDDP"] += value["SDDP"]
+        prev_data[key][args.model] += value[args.model]
+        new_data[key] = prev_data[key]
+
+    with open(os.path.join(save_path, f"{args.prob}_{args.num_stages}_{args.model}.pickle"), "wb") as fw:
+        pickle.dump(new_data, fw)
