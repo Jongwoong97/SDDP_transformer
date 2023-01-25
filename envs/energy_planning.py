@@ -20,7 +20,9 @@ class EnergyPlanning(object):
                  utility_coeff=0.1,
                  utility_scale=5,
                  hydro_cost=2,
-                 thermal_cost=7):
+                 thermal_cost=7,
+                 paramdict=None,
+                 ):
         self.prob_name = "EnergyPlanning"
         self.n_stages = n_stages
         self.initial_reservoir = initial_reservoir
@@ -40,6 +42,8 @@ class EnergyPlanning(object):
         self.prev_solution = initial_reservoir
 
         self.stage = EnergyPlanningStage
+
+        self.paramdict = paramdict
 
     def create_scenarioTree(self, num_node=3, moment_matching=True):
         scenarioTree = [[0]]
@@ -62,8 +66,12 @@ class EnergyPlanning(object):
         return scenarioTree, water_inflow_mean, water_inflow_std
 
     def get_params(self):
-        mu = np.random.uniform(self.water_inflow_mean_low, self.water_inflow_mean_high)
-        std = np.random.uniform(self.water_inflow_std_low, self.water_inflow_std_high)
+        if self.paramdict:
+            mu = self.paramdict['mean']
+            std = self.paramdict['scale']
+        else:
+            mu = np.random.uniform(self.water_inflow_mean_low, self.water_inflow_mean_high)
+            std = np.random.uniform(self.water_inflow_std_low, self.water_inflow_std_high)
         # mu = 20
         # std = 5
         return mu, std

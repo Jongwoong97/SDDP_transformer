@@ -17,7 +17,7 @@ parameters = {'axes.labelsize': 15,
               'axes.titlesize': 0,
               'xtick.labelsize': 15,
               'ytick.labelsize': 15,
-              'legend.fontsize': 30}
+              'legend.fontsize': 20}
 
 plt.rcParams.update(parameters)
 
@@ -107,7 +107,7 @@ def get_leaning_evaluation_graph(load_path, save_path):
     modes = ["train", "validation"]
 
     def lineplot(datas, data_labels, x="Step", y="Value", x_label="epoch", y_label="value", title=None):
-        plt.figure(figsize=(40, 7))
+        plt.figure(figsize=(10, 8))
         plt.grid(color="gray", alpha=0.5, linestyle="--")
         plt.title(title)
         plt.xlabel(x_label)
@@ -115,9 +115,9 @@ def get_leaning_evaluation_graph(load_path, save_path):
         plt.tight_layout()
 
         for i in range(len(datas)):
-            plt.plot(datas[i][x], datas[i][y], color='royalblue' if i==0 else 'salmon', label=data_labels[i], linestyle="-" if i==0 else "--")
+            plt.plot(datas[i][x], datas[i][y], color='royalblue' if i==0 else 'salmon', label=data_labels[i])
         plt.legend()
-        plt.savefig(os.path.join(save_path, title + ".png"))
+        plt.savefig(os.path.join(save_path, title + ".png"), dpi=300)
         plt.close()
 
     for metric in evaluation_metrics:
@@ -126,7 +126,11 @@ def get_leaning_evaluation_graph(load_path, save_path):
             data_labels = []
             for model in models:
                 datas.append(pd.read_csv(os.path.join(load_path, problem + "_" + stage + "_" + model + "_" + metric + ".csv"), index_col=0))
-                data_labels.append("SDDP-" + model.title())
+                model_name = "TranSDDP"
+                if model == "transformer":
+                    data_labels.append(model_name)
+                else:
+                    data_labels.append(model_name + "-Decoder")
 
             lineplot(datas, data_labels, y_label=metric + " ratio", title=metric.title())
             continue
@@ -136,28 +140,40 @@ def get_leaning_evaluation_graph(load_path, save_path):
             data_labels = []
             for model in models:
                 datas.append(pd.read_csv(os.path.join(load_path, problem + "_" + stage + "_" + model + "_" + metric + "_" + mode + ".csv"), index_col=0))
-                data_labels.append("SDDP-" + model.title())
+                model_name = "TranSDDP"
+                if model == "transformer":
+                    data_labels.append(model_name)
+                else:
+                    data_labels.append(model_name + "-Decoder")
             lineplot(datas, data_labels, y_label=metric, title=metric.title() + f"({mode})")
 
 
-def get_time_comparison_graph(msp_time, sddp_time, sddp_t_train_time, sddp_t_eval_time, sddp_td_train_time, sddp_td_eval_time):
-    x = np.arange(0, 100)
+def get_time_comparison_graph(msp_time, sddp_time, sddp_t_train_time, sddp_t_eval_time, sddp_td_train_time, sddp_td_eval_time,
+                              vfgl_time, l1_time, neural_sddp_eval_time, neural_sddp_training_time, prob):
+    x = np.arange(0, 200)
 
-    plt.figure(figsize=(20, 10))
+    plt.figure(figsize=(10, 8))
     plt.grid(color="gray", alpha=0.5, linestyle="--")
     plt.title("Total Computation Time per # Problems")
     plt.xlabel("# problems")
     plt.ylabel("computation time (s)")
 
-    plt.plot(x, msp_time*x, label="MSP", linestyle=':', color='gold')
-    plt.plot(x, sddp_time*x, label="SDDP", linestyle="--", color='blue')
-    plt.plot(x, sddp_t_train_time+sddp_t_eval_time*x, label="SDDP-Transformer", color='red')
-    plt.plot(x, sddp_td_train_time+sddp_td_eval_time*x, label="SDDP-Transformer(decoder)", linestyle=(0, (3, 1, 1, 1)), color='m')
-    plt.plot(0, sddp_t_train_time, 'rD', label='SDDP-Transformer: training time')
-    plt.plot(0, sddp_td_train_time, 'mD', label='SDDP-Transformer(decoder): training time')
+    # plt.plot(x, msp_time*x, label="MSP", linestyle=':', color='green')
+    plt.plot(x, msp_time * x, label="MSP", color='green', linewidth="2")
+    # plt.plot(x, sddp_time*x, label="SDDP", linestyle="--", color='blue')
+    plt.plot(x, sddp_time * x, label="SDDP", color='blue', linewidth="2")
+    # plt.plot(x, vfgl_time*x, label="VFGL", linestyle="--", color='indigo')
+    plt.plot(x, vfgl_time * x, label="VFGL", color='indigo', linewidth="2")
+    plt.plot(x, l1_time*x, label="Level 1 Dominance", color='deepskyblue', linewidth="2")
+    plt.plot(x, neural_sddp_training_time+neural_sddp_eval_time*x, label=r'$\nu$-SDDP', color='y', linewidth="2")
+    plt.plot(x, sddp_t_train_time+sddp_t_eval_time*x, label="TranSDDP", color='red', linewidth="2")
+    plt.plot(x, sddp_td_train_time+sddp_td_eval_time*x, label="TranSDDP-Decoder", color='m', linewidth="2")
+    plt.plot(0, neural_sddp_training_time, 'yD', label=r'$\nu$-SDDP: training time', linewidth="2")
+    plt.plot(0, sddp_t_train_time, 'rD', label='TranSDDP: training time', linewidth="2")
+    plt.plot(0, sddp_td_train_time, 'mD', label='TranSDDP-Decoder: training time', linewidth="2")
 
-    plt.legend()
-    plt.show()
+    plt.legend(prop={'size': 13})
+    plt.savefig(f"D:/sddp_data/obj_data/computation_time/{prob}.png", dpi=300)
 
 if __name__ == '__main__':
     # load_path = "D:/sddp_data/EnergyPlanning/stages_15/sample/long_iteration"
@@ -202,19 +218,48 @@ if __name__ == '__main__':
     #
     # get_dist_graph(get_shape_inform(data_obj), x_label="# of cutting planes", y_label="count")
 
-    get_leaning_evaluation_graph(load_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult",
-                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult/graph")
 
-    # get_time_comparison_graph(msp_time=331.58,
-    #                           sddp_time=183.01,
-    #                           sddp_t_train_time=119*60,
-    #                           sddp_t_eval_time=1.99,
-    #                           sddp_td_train_time=99*60,
-    #                           sddp_td_eval_time=1.71)
+    ''' error ratio, loss, infeasibility graph'''
+    # get_leaning_evaluation_graph(load_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult",
+    #                              save_path="D:/sddp_data/MertonsPortfolioOptimization/result/tensorboardresult/graph")
 
-    # get_time_comparison_graph(msp_time=229.93,
-    #                           sddp_time=93.35,
-    #                           sddp_t_train_time=95*60,
-    #                           sddp_t_eval_time=0.46,
-    #                           sddp_td_train_time=72*60,
-    #                           sddp_td_eval_time=0.33)
+    '''computation time 비교 그래프'''
+
+    # EP
+    get_time_comparison_graph(msp_time=331.58,
+                              sddp_time=183.01,
+                              sddp_t_train_time=119*60,
+                              sddp_t_eval_time=1.99,
+                              sddp_td_train_time=99*60,
+                              sddp_td_eval_time=1.71,
+                              vfgl_time=428.559,
+                              l1_time=121.096,
+                              neural_sddp_eval_time=2.047 / 102,
+                              neural_sddp_training_time=(807 * 60 + 51),
+                              prob="EP")
+
+    # MPO
+    get_time_comparison_graph(msp_time=229.93,
+                              sddp_time=93.35,
+                              sddp_t_train_time=95*60,
+                              sddp_t_eval_time=0.46,
+                              sddp_td_train_time=72*60,
+                              sddp_td_eval_time=0.33,
+                              vfgl_time=257.387,
+                              l1_time=91.595,
+                              neural_sddp_eval_time=2.0939/102,
+                              neural_sddp_training_time=(352*60+50),
+                              prob="MPO")
+
+    # PO
+    get_time_comparison_graph(msp_time=483.046,
+                              sddp_time=98.637,
+                              sddp_t_train_time=136*60,
+                              sddp_t_eval_time=2.410,
+                              sddp_td_train_time=116*60,
+                              sddp_td_eval_time=2.018,
+                              vfgl_time=266.514,
+                              l1_time=49.486,
+                              neural_sddp_eval_time=1.75 / 102,
+                              neural_sddp_training_time=(658 * 60),
+                              prob="PO")

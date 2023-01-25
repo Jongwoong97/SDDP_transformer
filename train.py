@@ -231,8 +231,9 @@ def predict(model, dataloader, args, cnt_cuts=2, device="cpu"):
             obj_msps += obj_msp
             if idx == 0:
                 pred_cut_ex = pred_cut
-            elif idx == 33:
                 break
+            # elif idx == 33:
+            #     break
     return np.mean(errors_pred), np.mean(errors_sddp), np.std(errors_pred), np.std(errors_sddp), np.std(
         obj_preds), np.std(obj_sddps), np.std(obj_msps), \
            pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha
@@ -257,7 +258,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
     else:
         max_length = 100
 
-    # temp = time.time()
+    temp = time.time()
     y_input, encoder_weights, decoder_weights_sa, decoder_weights_mha = get_pred_cuts(X, y, cnt_cuts, model, device,
                                                                                       max_length)
     # print("computation time: ", (time.time() - temp))
@@ -281,7 +282,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
             _, optVal = MSP_FP(stageNum=args.num_stages, scenario_node=3, mm=True, paramdict=paramdict)
         elif args.prob == "ProductionPlanning":
             paramdict = {'mu': list(x_curr[:3, 36]), 'sigma': list(x_curr[:3, 37])}
-            _, optVal = MSP_PO(stageNum=args.num_stages, scenario_node=3, mm=True, paramdict=paramdict)
+            _, optVal = MSP_PO(stageNum=args.num_stages, scenario_node=2, mm=True, paramdict=paramdict)
         else:
             raise NotImplementedError
 
@@ -289,9 +290,9 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
         obj_target = get_pred_obj(y[d][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
         obj_pred = get_pred_obj(y_input[d][:end_token_idx, : -1].detach().cpu().data.numpy(), args)
-        print("obj_target", obj_target)
-        print("opt_value", optVal)
-        print("obj_pred", obj_pred)
+        # print("obj_target", obj_target)
+        # print("opt_value", optVal)
+        # print("obj_pred", obj_pred)
         errors_pred.append(get_error_rate(obj_pred, optVal) / np.abs(optVal))
         errors_sddp.append(get_error_rate(obj_target, optVal) / np.abs(optVal))
         obj_preds.append(obj_pred)

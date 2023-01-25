@@ -13,19 +13,17 @@ from data.data_processing import *
 from multiprocessing import Pool
 
 
-def run_SDDP(args):
+def run_SDDP(args, paramdict=None):
     max_iter = args.max_iter
     n_stages = args.num_stages
     problem = args.prob
     level_1_dominance = args.level_1_dominance
     if problem == 'EnergyPlanning':
-        prob_class = EnergyPlanning(n_stages=n_stages)
+        prob_class = EnergyPlanning(n_stages=n_stages, paramdict=paramdict)
     elif problem == 'ProductionPlanning':
-        prob_class = ProductionPlanning(n_stages=n_stages)
-    elif problem == 'InventoryControl':
-        prob_class = InventoryControl(n_stages=n_stages)
+        prob_class = ProductionPlanning(n_stages=n_stages, paramdict=paramdict)
     elif problem == 'MertonsPortfolioOptimization':
-        prob_class = MertonsPortfolioOptimization(n_stages=n_stages)
+        prob_class = MertonsPortfolioOptimization(n_stages=n_stages, paramdict=paramdict)
     else:
         raise ValueError
 
@@ -131,9 +129,9 @@ def main(process):
         times.append(sum(time_list))
         obj_values.append(obj_value[-1]["stage0"])
         print("mean time: ", np.mean(times))
-        print("obj values avg: ", np.mean(obj_values))
-        print("obj values var: ", np.std(obj_values))
-        print("solution values avg: ", np.mean(sol, axis=0))
+        # print("obj values avg: ", np.mean(obj_values))
+        # print("obj values var: ", np.std(obj_values))
+        # print("solution values avg: ", np.mean(sol, axis=0))
 
         # if len(obj_value) >= 100:
         #     save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
@@ -144,10 +142,53 @@ def main(process):
         print("Process {}: Episode {}/{} result saved".format(process, i + 1, args.max_episode))
 
 
+def save_l1_dominance_data():
+    parser = argparse.ArgumentParser(description='Pytorch SDDP_RL')
+    parser.add_argument('--max_iter', type=int, default=1000,
+                        help='problem to solve')
+    parser.add_argument('--prob', type=str, default='EnergyPlanning',
+                        help='problem to solve')
+    parser.add_argument('--level_1_dominance', type=bool, default=True)
+    parser.add_argument('--num_stages', type=int, default=7,
+                        help='Number of Stages')
+    parser.add_argument('--save_path', type=str, default='D:/sddp_data')
+    parser.add_argument('--sample_type', type=str, default="target", choices=["predict", "target"])
+    args = parser.parse_args()
+
+    with open(os.path.join(args.save_path, "obj_data", f"{args.prob}_{args.num_stages}_transformer.pickle"), "rb") as fr:
+        scenario_obj_data = pickle.load(fr)
+    paramdict = scenario_obj_data[(args.prob, args.num_stages)]['paramdict']
+    objs_msp = scenario_obj_data[(args.prob, args.num_stages)]['MSP']
+
+    objs_L1 = []
+    errors = []
+    times = []
+
+    for i in range(len(paramdict)):
+        solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list = run_SDDP(args, paramdict=paramdict[i])
+        objs_L1.append(objective_list[-1]["stage0"])
+        times.append(sum(time_list))
+        errors.append(np.abs((objs_L1[i]-objs_msp[i])/objs_msp[i]))
+        print(f"Errors {i}/{len(paramdict)}: {errors[i]}")
+        print(f"time {i}/{len(paramdict)}: {np.mean(times)}")
+
+    print("Error mean(L1 dominance): ", np.mean(errors))
+    print("Error std(L1 dominance): ", np.std(errors))
+    print("Obj std(L1 dominance): ", np.std(objs_L1))
+    print("time mean(L1 dominance): ", np.mean(times))
+
+    scenario_obj_data[(args.prob, args.num_stages)]['L1'] = objs_L1
+
+    with open(os.path.join(args.save_path, "obj_data", f"{args.prob}_{args.num_stages}_transformer.pickle"), "wb") as fw:
+        pickle.dump(scenario_obj_data, fw)
+
+
 # SDDP solution
 if __name__ == '__main__':
     # with Pool(4) as p:
     #     p.map(main, [1, 2, 3, 4])
 
-    main(0)
+    # main(0)
+
+    save_l1_dominance_data()
 

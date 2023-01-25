@@ -12,6 +12,12 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     var_name = ""
     if args.prob == "ProductionPlanning":
         var_start_idx = 6
+        if var_idx == 0:
+            var_name = "1st product storage"
+        elif var_idx == 1:
+            var_name = "2nd product storage"
+        else:
+            var_name = "3rd product storage"
     elif args.prob == "EnergyPlanning":
         var_start_idx = 1
         var_name = "reservoir final"
@@ -49,7 +55,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
 
     ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, "stage0~2_cuts_{}.png".format(var_idx)))
+    plt.savefig(os.path.join(save_path, "stage0~2_cuts_{}.png".format(var_idx)), dpi=300)
     plt.clf()
 
     fig, ax = plt.subplots(3, 2, figsize=(16, 24), sharex='all', sharey='row')
@@ -77,7 +83,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
 
     ax[0, -1].legend(loc="upper left", bbox_to_anchor=(1.03, 1))
     plt.tight_layout()
-    plt.savefig(os.path.join(save_path, "stage3~5_cuts_{}.png".format(var_idx)))
+    plt.savefig(os.path.join(save_path, "stage3~5_cuts_{}.png".format(var_idx)), dpi=300)
     plt.clf()
 
 

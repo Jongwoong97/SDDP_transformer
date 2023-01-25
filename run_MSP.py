@@ -371,4 +371,4 @@ def dot(var1, var2):
 if __name__ == '__main__':
     # MSP_EP(stageNum=10, scenario_node=3, paramdict={'mean': 20.0, 'scale': 5.0}, mm=True)
     # MSP_FP(stageNum=10, scenario_node=3, paramdict={'mu': 0.06, 'sigma':0.2, 'riskFree':0.03}, mm=True)
-    MSP_PO(stageNum=7, scenario_node=3, mm=True, paramdict={'mu': [4, 2.3, 1.3], 'sigma': [0.2, 0.1, 0.05]})
+    MSP_PO(stageNum=10, scenario_node=3, mm=True, paramdict={'mu': [4, 2.3, 1.3], 'sigma': [0.2, 0.1, 0.05]})

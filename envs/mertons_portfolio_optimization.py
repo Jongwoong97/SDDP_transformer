@@ -18,6 +18,7 @@ class MertonsPortfolioOptimization(object):
                  volatility=0.2,
                  volatility_low=0.15,
                  volatility_high=0.25,
+                 paramdict=None,
                  ):
         self.prob_name = "MertonsPortfolioOptimization"
         self.n_stages = n_stages
@@ -35,27 +36,32 @@ class MertonsPortfolioOptimization(object):
 
         self.stage = MertonsPortfolioOptimizationStage
 
+        self.paramdict = paramdict
+
     def create_scenarioTree(self, num_node=3, moment_matching=True):
         scenarioTree = [[0]]
         lognormal_mean = []
         lognormal_std = []
         mu, std = self.get_params()
+        param_a, param_b = (mu-(std**2)/2)*self.delta_t, std*np.sqrt(self.delta_t)
         for idx in range(self.n_stages - 1):
-            lognormal_mean.append((mu-(std**2)/2)*self.delta_t)
-            lognormal_std.append(std*np.sqrt(self.delta_t))
-            batch_sample = np.random.normal(loc=(mu-(std**2)/2)*self.delta_t, scale=std*np.sqrt(self.delta_t), size=num_node)
+            lognormal_mean.append(param_a)
+            lognormal_std.append(param_b)
+            batch_sample = np.random.normal(loc=param_a, scale=param_b, size=num_node)
             if moment_matching:
                 normalized_batch_sample = (batch_sample - np.mean(batch_sample))
                 normalized_batch_sample = normalized_batch_sample / np.std(batch_sample)
-                rescaled = normalized_batch_sample * std*np.sqrt(self.delta_t)
-                rescaled = rescaled + (mu-(std**2)/2)*self.delta_t
+                rescaled = normalized_batch_sample * param_b
+                rescaled = rescaled + param_a
                 scenarioTree.append(np.exp(rescaled).tolist())
             else:
                 scenarioTree.append(np.exp(batch_sample).tolist())
         return scenarioTree, lognormal_mean, lognormal_std
 
     def get_params(self):
-        if self.change_param:
+        if self.paramdict:
+            mu, std = self.paramdict['mu'], self.paramdict['sigma']
+        elif self.change_param:
             mu = np.random.uniform(self.mean_return_low, self.mean_return_high)
             std = np.random.uniform(self.volatility_low, self.volatility_high)
         else:

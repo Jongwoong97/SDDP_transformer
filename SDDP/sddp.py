@@ -49,7 +49,10 @@ class SDDP:
         self.cuts["stage{}".format(self.n_stage - 1)] = {"gradient": None, "constant": None}
 
         # Scenario related
-        self.scenario_tree_node = 3
+        if self.stage == 7:
+            self.scenario_tree_node = 5
+        else:
+            self.scenario_tree_node = 3
         self.scenario_trees, self.rv_mean, self.rv_std = self.prob_class.create_scenarioTree(
             num_node=self.scenario_tree_node,
             moment_matching=True)
@@ -84,6 +87,22 @@ class SDDP:
                             constant = candidate_cuts["constant"][i]
                             if (gradient * x + constant) > max_val:
                                 max_val = (gradient * x + constant)
+                                max_idx = i
+                    elif self.prob_name == "MertonsPortfolioOptimization":
+                        x = self.all_solution_set["stage{}".format(stage_idx)][j][0:2]
+                        for i in range(len(candidate_cuts["gradient"])):
+                            gradient = candidate_cuts["gradient"][i]
+                            constant = candidate_cuts["constant"][i]
+                            if (gradient @ x + constant) > max_val:
+                                max_val = (gradient @ x + constant)
+                                max_idx = i
+                    elif self.prob_name == "ProductionPlanning":
+                        x = self.all_solution_set["stage{}".format(stage_idx)][j][2]
+                        for i in range(len(candidate_cuts["gradient"])):
+                            gradient = candidate_cuts["gradient"][i]
+                            constant = candidate_cuts["constant"][i]
+                            if (gradient @ x + constant) > max_val:
+                                max_val = (gradient @ x + constant)
                                 max_idx = i
                     selected_cuts_idx.add(max_idx)
             else:

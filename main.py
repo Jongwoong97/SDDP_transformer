@@ -65,9 +65,6 @@ def main(args):
         else:
             raise ValueError
 
-        if args.stage_information == "rest":
-            save_path = os.path.join(save_path, "stage_information_rest/integer_stage_inform")
-
     elif args.mode == 'inference':
         save_path = os.path.join(args.save_path,
                                  "{}/stages_{}/predict".format(args.prob, args.num_stages))  # /original/except_outliers
@@ -75,8 +72,6 @@ def main(args):
         if args.loss == 'MSE_CE':
             save_path = os.path.join(save_path, "change_loss")
 
-        if args.stage_information == "rest":
-            save_path = os.path.join(save_path, "stage_information_rest/integer_stage_inform")
 
     if args.mode == 'inference_one_sample':
         if args.prob == "EnergyPlanning":
@@ -118,8 +113,6 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
         data_split = splits.split(np.arange(len(dataset)))
 
     for fold, (train_idx, val_idx) in enumerate(data_split):
-        # if fold == 0:
-        #     continue
         train_sampler = SubsetSequentialSampler(train_idx)
         val_sampler = SubsetSequentialSampler(val_idx)
 
@@ -166,8 +159,6 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     inference_error_ratio_var_sddp = []
     obj_pred_vars, obj_sddp_vars, obj_msp_vars = [], [], []
     for fold in range(1, args.kfold + 1):
-        if fold != 6:
-            continue
         model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
         if args.load_model == 'None':
             raise FileNotFoundError("you should load a model")
@@ -378,7 +369,6 @@ if __name__ == "__main__":
                         choices=['not_except_outlier', 'except_outlier'])
     parser.add_argument('--loss', type=str, default='MSE',
                         choices=['MSE', 'MSE_CE'])
-    parser.add_argument('--stage_information', type=str, default="ratio", choices=["ratio", "rest"])
     parser.add_argument('--dataset', type=str, default="None")
     parser.add_argument('--model', type=str, default='transformer', choices=['transformer', 'transformer_decoder'])
     main(parser.parse_args())

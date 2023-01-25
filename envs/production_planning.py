@@ -22,6 +22,7 @@ class ProductionPlanning:
                  demand_std_low=(0.2, 0.1, 0.05),
                  demand_std_high=(0.4, 0.2, 0.1),
                  random_demand=None,
+                 paramdict=None,
                  ):
         if random_demand is None:
             random_demand = [(5, 3, 1), (6, 2, 1), (1, 2, 2)]
@@ -43,6 +44,8 @@ class ProductionPlanning:
         self.prev_solution = np.array([0, 0, 0])
 
         self.stage = ProductionPlanningStage
+
+        self.paramdict = paramdict
 
     def create_scenarioTree(self, num_node=3, moment_matching=False):
         scenarioTree = [[(0, 0, 0)]]
@@ -81,13 +84,17 @@ class ProductionPlanning:
         return scenarioTree, demand_mean_list, demand_std_list
 
     def get_params(self):
-        demand_mu = []
-        demand_std = []
-        for i in range(self.pdim):
-            mu = np.random.uniform(self.demand_mean_low[i], self.demand_mean_high[i])
-            std = np.random.uniform(self.demand_std_low[i], self.demand_std_high[i])
-            demand_mu.append(mu)
-            demand_std.append(std)
+        if self.paramdict:
+            demand_mu = self.paramdict['mu']
+            demand_std = self.paramdict['sigma']
+        else:
+            demand_mu = []
+            demand_std = []
+            for i in range(self.pdim):
+                mu = np.random.uniform(self.demand_mean_low[i], self.demand_mean_high[i])
+                std = np.random.uniform(self.demand_std_low[i], self.demand_std_high[i])
+                demand_mu.append(mu)
+                demand_std.append(std)
         # demand_mu = [4, 2.3, 1.3]
         # demand_std = [0.2, 0.1, 0.05]
         return demand_mu, demand_std
