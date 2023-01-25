@@ -1,7 +1,6 @@
 from matplotlib import pyplot as plt
 import seaborn as sns
 import numpy as np
-import os
 
 parameters = {'axes.labelsize': 12,
               'axes.titlesize': 12,

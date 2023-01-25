@@ -1,11 +1,7 @@
 import os.path
-
 from envs import utils
 import pickle
-import copy
 import numpy as np
-from collections import Counter
-from scipy.special import softmax
 from visualization.attention_score_graph import plot_head_map
 
 
@@ -110,8 +106,6 @@ def get_max_cut_cnt_from_target(problem, n_stages, sample_type):
                         max_val = tmp
                 num_max_cut_dict[stage][it, idx] += 1
 
-    # num_max_cut_dict['stage0'] = np.where(num_max_cut_dict['stage0'] == 0, -np.inf, num_max_cut_dict['stage0'])
-    # max_cut_cnts = softmax(num_max_cut_dict['stage0'], axis=1)
     max_cut_cnts = num_max_cut_dict['stage0'] / np.sum(num_max_cut_dict['stage0'], axis=1, keepdims=True)
 
     initial_cut = np.zeros((1, max_cut_cnts.shape[1]))

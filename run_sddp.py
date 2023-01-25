@@ -1,11 +1,9 @@
 import time
-import random
 import numpy as np
 import pickle
 import copy
 from envs.energy_planning import *
 from envs.production_planning import *
-from envs.inventory_control import *
 from envs.mertons_portfolio_optimization import *
 from SDDP.sddp import *
 import argparse
@@ -38,7 +36,6 @@ def run_SDDP(args, paramdict=None):
         with open(os.path.join(load_path, "pred_cuts.pickle"), "rb") as fr:
             precuts = pickle.load(fr)
 
-    # print(args.prob + ": SDDP algorithm start!")
     sddp = SDDP(prob_class=prob_class, level_1_dominance=level_1_dominance)
     solution_list, objective_list, value_function_list, cut_list, time_list, opt_gap_list, ub_list = [], [], [], [], [], [], []
 
@@ -65,16 +62,9 @@ def run_SDDP(args, paramdict=None):
         # print(f"total running time with iter {idx}: {time.time() - start}")
         # print(f"# of 1st stage cuts: {len(sddp.cuts['stage0']['gradient']) - 1}")
 
-        # if idx > 80:
-        #     print("---" * 20)
-        #     return solution_list[-1]["stage0"], objective_list[-1]["stage0"], time.time() - start, None
-
         if done:
             print("---" * 20)
             break
-
-        # if args.save_mode == 'sample_scenario':
-        #     break
 
     return solution_list, objective_list, cut_list, time_list, sddp, opt_gap_list, ub_list
 
@@ -128,17 +118,10 @@ def main(process):
         sol.append(solution[-1]["stage0"])
         times.append(sum(time_list))
         obj_values.append(obj_value[-1]["stage0"])
-        print("mean time: ", np.mean(times))
-        # print("obj values avg: ", np.mean(obj_values))
-        # print("obj values var: ", np.std(obj_values))
-        # print("solution values avg: ", np.mean(sol, axis=0))
 
-        # if len(obj_value) >= 100:
-        #     save_sample_data(solution, obj_value, cut_list, time_list, opt_gap_list, ub_list, "long_iteration", args)
-
-        # raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
-        # data = preprocessing(raw_data, args)
-        # save_data(data, args)
+        raw_data = {"cuts": sddp.cuts, "rv_mean": sddp.rv_mean, "rv_std": sddp.rv_std}
+        data = preprocessing(raw_data, args)
+        save_data(data, args)
         print("Process {}: Episode {}/{} result saved".format(process, i + 1, args.max_episode))
 
 
@@ -188,7 +171,7 @@ if __name__ == '__main__':
     # with Pool(4) as p:
     #     p.map(main, [1, 2, 3, 4])
 
-    # main(0)
+    main(0)
 
-    save_l1_dominance_data()
+    # save_l1_dominance_data()
 

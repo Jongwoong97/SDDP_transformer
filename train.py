@@ -1,31 +1,22 @@
 import pickle
-import time
-
-import numpy as np
 import torch
 import os
 from envs.utils import get_parameters
 from config import *
-import cvxpy as cp
 from run_MSP import *
-import torch.nn.functional as F
 
-from visualization.cuts_graph import get_cut_graph
 
 
 def fit(model, optimizer, lr_scheduler, loss_fn, tgt_train_raw_data, tgt_eval_raw_data, train_dataloader,
-        val_dataloader, device, epochs, fold, args, writer):
+        val_dataloader, device, epochs, args, writer):
     print("Training and validating model")
     for epoch in range(epochs):
         print("-" * 25, f"Epoch {epoch + 1}", "-" * 25)
 
-        train_loss, avg_error_train, infeasible_cnt_ratio_train = train_loop(model, optimizer, lr_scheduler, loss_fn,
-                                                                             tgt_train_raw_data, train_dataloader, args,
-                                                                             device)
+        train_loss, avg_error_train, infeasible_cnt_ratio_train = train_loop(model, optimizer, loss_fn, tgt_train_raw_data,
+                                                                             train_dataloader, args, device)
         validation_loss, avg_error_eval, infeasible_cnt_ratio_val = validation_loop(model, loss_fn, tgt_eval_raw_data,
-                                                                                    val_dataloader, epoch + 1, fold,
-                                                                                    args,
-                                                                                    device)
+                                                                                    val_dataloader, args, device)
         if lr_scheduler:
             lr_scheduler.step()
 
@@ -73,8 +64,6 @@ def fit(model, optimizer, lr_scheduler, loss_fn, tgt_train_raw_data, tgt_eval_ra
         print(f"Validation loss: {validation_loss:.4f}")
         print(f"Avg Error train: {avg_error_train:.4f}")
         print(f"Avg Error eval: {avg_error_eval:.4f}")
-        # print(f"Avg Error True End train: {avg_error_train_true_end:.4f}")
-        # print(f"Avg Error True End eval: {avg_error_eval_true_end:.4f}")
         print(f"learning rate: {optimizer.param_groups[0]['lr']}")
         print(f"infeasible_cnt_ratio_train: {infeasible_cnt_ratio_train}")
         print(f"infeasible_cnt_ratio_val: {infeasible_cnt_ratio_val}")
@@ -85,7 +74,7 @@ def fit(model, optimizer, lr_scheduler, loss_fn, tgt_train_raw_data, tgt_eval_ra
     torch.save(model.state_dict(), os.path.join(writer.logdir, "best_episode.ckpt"))
 
 
-def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader, args, device="cpu"):
+def train_loop(model, optimizer, loss_fn, tgt_raw_data, dataloader, args, device="cpu"):
     if args.prob == "EnergyPlanning":
         if args.num_stages == 7:
             max_length = 80
@@ -122,7 +111,6 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
                                           data=y_raw).to(device)
         temp += y_input.size(0)
 
-        # X, y_input, tgt_mask 인자로 전달하여 prediction 값 도출
         y_pred, _, _, _ = model(X, y_input, tgt_mask, tgt_pad_mask=tgt_pad_mask)
 
         loss = loss_fn[0](y_pred[:, :, :-4], y_answer[:, :, :-1]) + loss_fn[1](y_pred[:, :, -4:].transpose(1, 2),
@@ -152,7 +140,7 @@ def train_loop(model, optimizer, lr_scheduler, loss_fn, tgt_raw_data, dataloader
     return total_loss / len(dataloader), np.mean(error_rate), infeasible_cnt / infeasible_test_total_cnt
 
 
-def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args, device="cpu"):
+def validation_loop(model, loss_fn, tgt_raw_data, dataloader, args, device="cpu"):
     if args.prob == "EnergyPlanning":
         if args.num_stages == 7:
             max_length = 80
@@ -185,7 +173,6 @@ def validation_loop(model, loss_fn, tgt_raw_data, dataloader, epoch, fold, args,
             sequence_length = y_input.size(1)
             tgt_mask = model.get_tgt_mask(sequence_length).to(device)
 
-            # target padding
             y_raw = tgt_raw_data[temp:temp + y_input.size(0)]
             tgt_pad_mask = model.get_pad_mask(max_seq_len=sequence_length,
                                               data=y_raw).to(device)
@@ -290,9 +277,6 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
         obj_target = get_pred_obj(y[d][:, :-1].detach().cpu().data.numpy(), args)  # y_raw[0][:-1]
 
         obj_pred = get_pred_obj(y_input[d][:end_token_idx, : -1].detach().cpu().data.numpy(), args)
-        # print("obj_target", obj_target)
-        # print("opt_value", optVal)
-        # print("obj_pred", obj_pred)
         errors_pred.append(get_error_rate(obj_pred, optVal) / np.abs(optVal))
         errors_sddp.append(get_error_rate(obj_target, optVal) / np.abs(optVal))
         obj_preds.append(obj_pred)
@@ -307,7 +291,7 @@ def predict_one_batch(X, y, idx, model, args, cnt_cuts=2, device="cpu"):
 
     return errors_pred, errors_sddp, obj_preds, obj_sddps, obj_msps, pred_cut_ex, [], \
            decoder_weights_sa[end_token_idx - 2][-1][0], decoder_weights_mha[end_token_idx - 2][-1][
-               0]  # encoder_weights[end_token_idx-2][-1][0]
+               0]
 
 
 def get_pred_obj(cuts, args):
@@ -404,61 +388,6 @@ def get_pred_cuts(X, y, cnt_cuts, model, device, max_length=100):
             y_input = torch.concat((y_input, next_item), dim=1)
 
     return y_input, encoder_weights, decoder_weights_sa, decoder_weights_mha
-
-
-def get_predict_and_inference_cut_graph(X, y, y_pred, y_raw, model, epoch, fold, args, device):
-    if args.prob == "EnergyPlanning":
-        if args.num_stages == 7:
-            max_length = 80
-        else:
-            max_length = 90
-    elif args.prob == "MertonsPortfolioOptimization":
-        if args.num_stages == 7:
-            max_length = 40
-        else:
-            max_length = 40
-    elif args.prob == "ProductionPlanning":
-        max_length = 100
-    else:
-        max_length = 100
-    y_inf, _, _, _ = get_pred_cuts(X, y, 1, model, device, max_length)
-    inf_cut_ex = get_all_stage_cuts(y_inf, args)
-
-    os.makedirs("D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/inference/{}".format(args.prob, args.num_stages, args.mode,
-                                                                           args.load_model, fold + 1, epoch),
-                exist_ok=True)
-    os.makedirs(
-        "D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/predict/{}".format(args.prob, args.num_stages, args.mode, args.load_model,
-                                                                 fold + 1, epoch),
-        exist_ok=True)
-    if args.prob == "ProductionPlanning":
-        num_var = 3
-    elif args.prob == "EnergyPlanning":
-        num_var = 1
-    elif args.prob == "MertonsPortfolioOptimization":
-        num_var = 2
-    else:
-        raise NotImplementedError
-
-    for i in range(num_var):
-        get_cut_graph(target_cut=y_raw[:args.num_stages - 1],
-                      pred_cut=inf_cut_ex,
-                      var_idx=i,
-                      args=args,
-                      save_path="D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/inference/{}".format(args.prob, args.num_stages,
-                                                                                           args.mode, args.load_model,
-                                                                                           fold + 1, epoch))
-    pred_cut_ex = get_all_stage_cuts(y_pred, args)
-    for i in range(num_var):
-        get_cut_graph(target_cut=y_raw[:args.num_stages - 1],
-                      pred_cut=pred_cut_ex,
-                      var_idx=i,
-                      args=args,
-                      save_path="D:/sddp_data/{}/{}/{}/{}/cuts/fold{}/predict/{}".format(args.prob, args.num_stages,
-                                                                                         args.mode,
-                                                                                         args.load_model, fold + 1,
-                                                                                         epoch))
-    print("epoch {} (fold{}): cuts figure saved".format(epoch, fold + 1))
 
 
 def save_obj_data(data, args):

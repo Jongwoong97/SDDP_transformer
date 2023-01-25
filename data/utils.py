@@ -189,11 +189,6 @@ def concat_data(load_path_data1, load_path_data2, save_path):
     with open(os.path.join(load_path_data2, "features.pickle"), "rb") as fr:
         data2_features = pickle.load(fr)
 
-    # dl = data1_label.pop(0)
-    # data1_label.append(dl)
-    # df = data1_features.pop(0)
-    # data1_features.append(df)
-
     new_data_features = data1_features + data2_features
     new_data_labels = data1_label + data2_label
 
@@ -256,10 +251,6 @@ if __name__ == "__main__":
         MertonsPortfolioOptimization: 40
         ProductionPlanning: 100
     """
-    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_10/train",
-    #                save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
-    #                low=0,
-    #                high=80)
 
     """
         idx_delete_start, idx_delete_end:
@@ -273,11 +264,18 @@ if __name__ == "__main__":
     #                           idx_delete_start=16,
     #                           idx_delete_end=24)
 
+    # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_10/train",
+    #                save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
+    #                low=0,
+    #                high=80)
+
+
+    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
+    #                         save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers/change_loss")
+
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")
     #
-    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
-    #                         save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers/change_loss")
 
     # change_stage_information(load_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss",
     #                          save_path="D:/sddp_data/EnergyPlanning/stages_7/train/mm/except_outliers/change_loss/stage_information_rest/integer_stage_inform",

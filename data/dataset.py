@@ -1,8 +1,6 @@
 import torch
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
-import os.path
-import pickle
 
 
 class SddpDataset(Dataset):

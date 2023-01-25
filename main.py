@@ -1,13 +1,10 @@
-import time
-
-import numpy as np
 import torch
 import gc
 import torch.nn as nn
 from sklearn.model_selection import KFold
 from data.dataset import SddpDataset
 from data.sampler import SubsetSequentialSampler
-from torch.utils.data import DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader
 from network.transformer import Transformer
 from train import fit, predict, get_pred_obj
 from run_MSP import MSP_EP, MSP_FP
@@ -15,7 +12,7 @@ from scheduler import CosineWarmupScheduler, CosineAnnealingWarmUpRestarts
 from visualization.common_graph import get_obj_graph
 from visualization.cuts_graph import *
 from visualization.attention_score_graph import read_plot_alignment_matrices
-from utils.sample_data import get_sample_data, get_max_cut_cnt_from_prediction
+from utils.sample_data import get_sample_data
 
 import os
 import json
@@ -33,7 +30,6 @@ def main(args):
     gc.collect()
     torch.cuda.empty_cache()
 
-    # configuration
     print("torch.cuda.is_available(): ", torch.cuda.is_available())
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -49,13 +45,9 @@ def main(args):
     else:
         raise NotImplementedError
 
-    # 데이터 불러오기
     if args.mode == 'train':
         save_path = os.path.join(args.save_path, "{}/stages_{}/train".format(args.prob,
                                                                              args.num_stages))  # /original/except_outliers
-
-        if args.dataset == 'total':
-            save_path = os.path.join(save_path, "total")
 
         if args.outlier == 'except_outlier':
             save_path = os.path.join(save_path, "except_outliers")
@@ -125,7 +117,7 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
             inf_path = os.path.join(os.getcwd(), "scripts", "logs", "{}, Fold {}".format(args.load_model, fold + 1))
             model.load_state_dict(torch.load(os.path.join(inf_path, "best_episode.ckpt")))
 
-        # log 설정 (tensorboard)
+        # log
         log_path = os.path.join(os.getcwd(), "scripts", "logs", run_time + ", Fold {}".format(fold + 1))
         os.makedirs(log_path, exist_ok=True)
 
@@ -147,7 +139,6 @@ def train(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
             val_dataloader=val_dataloader,
             device=device,
             epochs=args.epochs,
-            fold=fold,
             args=args,
             writer=writer)
 
@@ -270,11 +261,6 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     size_reduced = 27
     decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
 
-    # get_max_cut_cnt_from_prediction(pred_cut_ex[0][:size_reduced, :size_reduced], problem='EnergyPlanning', n_stages=7)
-
-    # decoder_weights_sa = torch.tril(decoder_weights_sa[:size_reduced+1, :size_reduced], diagonal=-1)[1:size_reduced+1]
-    # decoder_weights_sa = decoder_weights_sa / torch.sum(decoder_weights_sa, dim=1, keepdim=True)
-
     read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
                                  target_labels=np.arange(decoder_weights_sa.shape[0]),
                                  alpha=decoder_weights_sa)
@@ -311,7 +297,6 @@ def model_initialize(src_dim, tgt_dim, device, args):
         lr_scheduler = CosineAnnealingWarmUpRestarts(optimizer, T_0=args.T_0, T_mult=args.T_mult, eta_max=args.eta_max,
                                                      T_up=args.T_up,
                                                      gamma=args.gamma)  # T_0=1700, T_mult=2, eta_max=1e-4, T_up=400, gamma=0.9
-        # lr_scheduler = optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=1700, T_mult=2, eta_min=1e-5)
     elif args.lr_scheduler == 'None':
         lr_scheduler = None
     else:
@@ -345,30 +330,29 @@ def get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--prob', type=str, default='ProductionPlanning',
+    parser.add_argument('--prob', type=str, default='EnergyPlanning',
                         help='problem to solve')
     parser.add_argument('--num_stages', type=int, default=7,
                         help='Number of Stages')
-    parser.add_argument('--batch_size', type=int, default=30)
+    parser.add_argument('--batch_size', type=int, default=18)
     parser.add_argument('--kfold', type=int, default=6)
-    parser.add_argument('--epochs', type=int, default=100)
+    parser.add_argument('--epochs', type=int, default=49)
     parser.add_argument('--lr', type=float, default=1e-8)
     parser.add_argument('--eta_max', type=float, default=1e-4)
     parser.add_argument('--T_0', type=int, default=4)
     parser.add_argument('--T_mult', type=int, default=2)
     parser.add_argument('--T_up', type=int, default=1)
-    parser.add_argument('--gamma', type=float, default=0.75)
-    parser.add_argument('--lr_scheduler', type=str, default='None',
+    parser.add_argument('--gamma', type=float, default=0.9)
+    parser.add_argument('--lr_scheduler', type=str, default='CosineAnnealingWarmRestarts',
                         choices=['None', 'CosineScheduler', 'CosineAnnealingWarmRestarts'])
     parser.add_argument('--save_path', type=str, default='D:/sddp_data')
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'inference', 'inference_one_sample'])
     parser.add_argument('--load_model', type=str, default='None')
-    parser.add_argument('--feature_type', type=str, default='objective_information',
+    parser.add_argument('--feature_type', type=str, default='no_objective_information',
                         choices=['objective_information', 'no_objective_information'])
-    parser.add_argument('--outlier', type=str, default='not_except_outlier',
+    parser.add_argument('--outlier', type=str, default='except_outlier',
                         choices=['not_except_outlier', 'except_outlier'])
-    parser.add_argument('--loss', type=str, default='MSE',
+    parser.add_argument('--loss', type=str, default='MSE_CE',
                         choices=['MSE', 'MSE_CE'])
-    parser.add_argument('--dataset', type=str, default="None")
     parser.add_argument('--model', type=str, default='transformer', choices=['transformer', 'transformer_decoder'])
     main(parser.parse_args())
