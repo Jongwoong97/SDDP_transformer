@@ -64,7 +64,6 @@ def main(args):
         if args.loss == 'MSE_CE':
             save_path = os.path.join(save_path, "change_loss")
 
-
     if args.mode == 'inference_one_sample':
         if args.prob == "EnergyPlanning":
             mu = 20
@@ -72,6 +71,9 @@ def main(args):
         elif args.prob == "MertonsPortfolioOptimization":
             mu = 0.06
             sigma = 0.2
+        elif args.prob == "ProductionPlanning":
+            mu = [4.5, 2.75, 1.5]
+            sigma = [0.3, 0.15, 0.075]
         else:
             raise NotImplementedError
         x_raw_data, y_raw_data = get_sample_data(args, mu, sigma)
@@ -88,7 +90,7 @@ def main(args):
     elif args.mode == 'inference':
         inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data)
     elif args.mode == 'inference_one_sample':
-        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 1)
+        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 5, paramdict={'mu': mu, 'sigma': sigma})
     else:
         raise ValueError
 
@@ -213,7 +215,7 @@ def inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data):
     print("var obj value(msp): ", np.mean(obj_msp_vars))
 
 
-def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, fold):
+def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, fold, paramdict):
     model, optimizer, lr_scheduler = model_initialize(src_dim, tgt_dim, device, args)
 
     if args.load_model == 'None':
@@ -226,22 +228,11 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
     test_dataset = SddpDataset(x_raw_data, y_raw_data)
     test_dataloader = DataLoader(test_dataset, batch_size=args.num_stages)
 
-    n_samples = 1
-    obj_pred = []
-    obj_sddp = []
-    obj_msp = []
-    for i in range(n_samples):
-        _, _, _, _, obj_preds, obj_sddps, obj_msps, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
-                                                                                                                                    dataloader=test_dataloader,
-                                                                                                                                    args=args,
-                                                                                                                                    cnt_cuts=1,
-                                                                                                                                    device=device)
-        obj_pred += obj_preds
-        obj_sddp += obj_sddps
-        obj_msp += obj_msps
-    print("obj pred: ", np.std(obj_pred))
-    print("obj sddp: ", np.std(obj_sddp))
-    print("obj msp: ", np.std(obj_msp))
+    _, _, _, _, obj_preds, obj_sddps, obj_msps, pred_cut_ex, encoder_weights, decoder_weights_sa, decoder_weights_mha = predict(model=model,
+                                                                                                                                dataloader=test_dataloader,
+                                                                                                                                args=args,
+                                                                                                                                cnt_cuts=1,
+                                                                                                                                device=device)
 
     with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
         target_cuts = pickle.load(fr)
@@ -250,9 +241,9 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
 
     get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 1, args)
 
-    mu = 0.06
-    sigma = 0.2
-    with open(os.path.join('D:/sddp_data/{}/stages_7/sample_scenario/mu{}_sigma{}', "labels.pickle").format(args.prob, mu, sigma), "rb") as fr:
+    mu = paramdict['mu']
+    sigma = paramdict['sigma']
+    with open(os.path.join('D:/sddp_data/{}/stages_7/sample_scenario', "labels.pickle").format(args.prob, mu, sigma), "rb") as fr:
         y_raw_data = pickle.load(fr)
 
     data = get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args)

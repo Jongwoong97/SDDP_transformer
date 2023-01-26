@@ -3,6 +3,7 @@ import os.path
 import numpy as np
 from envs import utils
 
+
 def preprocessing(data, args):
     A, B, b, c = utils.get_parameters(args)
 
@@ -60,13 +61,13 @@ def preprocessing(data, args):
 
 def save_data(data, args):
     new_data = {}
-    if args.mm == 'True':
-        list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode, "mm", "original"]
-    else:
-        if args.save_mode == 'sample_scenario':
-            list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode]
-        else:
-            list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode, "original"]
+    list_path = [args.save_path, args.prob, "stages_{}".format(args.num_stages), args.save_mode]
+
+    if args.save_mode != 'sample_scenario':
+        if args.mm == 'True':
+            list_path.append("mm")
+        list_path.append("original")
+
     save_path = os.path.join(*list_path)
     os.makedirs(save_path, exist_ok=True)
 

@@ -76,7 +76,7 @@ class ProductionPlanning:
 
             scenarioTree.append([tuple(np.array(scenario)[:, i]) for i in range(num_node)])
 
-        # demand node 고정
+        # fix demand node
         # for idx in range(self.n_stages - 1):
         #     demand_mean_list.append([4, 2.3, 1.3])
         #     demand_std_list.append([0, 0, 0])
@@ -95,8 +95,8 @@ class ProductionPlanning:
                 std = np.random.uniform(self.demand_std_low[i], self.demand_std_high[i])
                 demand_mu.append(mu)
                 demand_std.append(std)
-        # demand_mu = [4, 2.3, 1.3]
-        # demand_std = [0.2, 0.1, 0.05]
+        # demand_mu = [4.5, 2.75, 1.5]
+        # demand_std = [0.3, 0.15, 0.075]
         return demand_mu, demand_std
 
 

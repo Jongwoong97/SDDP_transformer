@@ -259,10 +259,10 @@ if __name__ == "__main__":
         ProductionPlanning: 36, 54
     """
 
-    # delete_objective_function(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/mm/original",
-    #                           save_path="D:/sddp_data/EnergyPlanning/stages_10/train",
-    #                           idx_delete_start=16,
-    #                           idx_delete_end=24)
+    # delete_objective_function(load_path="D:/sddp_data/ProductionPlanning/stages_7/sample_scenario",
+    #                           save_path="D:/sddp_data/ProductionPlanning/stages_7/sample_scenario",
+    #                           idx_delete_start=36,
+    #                           idx_delete_end=54)
 
     # except_outlier(load_path="D:/sddp_data/EnergyPlanning/stages_10/train",
     #                save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
@@ -270,8 +270,8 @@ if __name__ == "__main__":
     #                high=80)
 
 
-    # change_token_to_integer(load_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers",
-    #                         save_path="D:/sddp_data/EnergyPlanning/stages_10/train/except_outliers/change_loss")
+    # change_token_to_integer(load_path="D:/sddp_data/ProductionPlanning/stages_7/sample_scenario",
+    #                         save_path="D:/sddp_data/ProductionPlanning/stages_7/sample_scenario")
 
     # preprocess_sample_scenario_cuts(load_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario",
     #                                 save_path="D:/sddp_data/MertonsPortfolioOptimization/stages_7/sample_scenario")

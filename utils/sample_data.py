@@ -33,11 +33,7 @@ def get_sample_data(args, sample_mean, sample_std):
     feature_all = []
     label_all = [initial_cut]*(args.num_stages - 1)
     for stage in range(args.num_stages-1):
-        if args.stage_information == 'rest':
-            stage_information = np.tile((args.num_stages - stage - 1)/14, (_A.shape[0], 1))
-            # stage_information = np.tile(args.num_stages - stage - 1, (_A.shape[0], 1))
-        else:
-            stage_information = np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))
+        stage_information = np.tile((1 + stage) / (args.num_stages - 1), (_A.shape[0], 1))
 
         # features
         if args.prob == "ProductionPlanning":
@@ -150,9 +146,6 @@ def get_max_cut_cnt_from_prediction(pred_cuts, problem, n_stages):
                   target_labels=list(map(str, np.arange(max_cut_cnts.shape[0]))))
 
     return max_cut_cnts
-
-    # with open("num_max_cut.pkl", "wb") as f:
-    #     pickle.dump(num_max_cut_dict, f)
 
 
 if __name__ == '__main__':
