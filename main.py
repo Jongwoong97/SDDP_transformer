@@ -90,7 +90,7 @@ def main(args):
     elif args.mode == 'inference':
         inference(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data)
     elif args.mode == 'inference_one_sample':
-        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 5, paramdict={'mu': mu, 'sigma': sigma})
+        inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data, 1, paramdict={'mu': mu, 'sigma': sigma})
     else:
         raise ValueError
 
@@ -234,27 +234,27 @@ def inference_one_sample(args, device, src_dim, tgt_dim, x_raw_data, y_raw_data,
                                                                                                                                 cnt_cuts=1,
                                                                                                                                 device=device)
 
-    with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
-        target_cuts = pickle.load(fr)
-
-    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0, args)
-
-    get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 1, args)
+    # with open("D:/sddp_data/{}/stages_7/sample_scenario/1st_cut/cuts.pickle".format(args.prob), 'rb') as fr:
+    #     target_cuts = pickle.load(fr)
+    #
+    # get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 0, args)
+    #
+    # get_sample_scenario_cuts_graph(target_cuts, {f"stage{i}": pred_cut_ex[i][1] for i in range(len(pred_cut_ex))}, 1, args)
 
     mu = paramdict['mu']
     sigma = paramdict['sigma']
     with open(os.path.join('D:/sddp_data/{}/stages_7/sample_scenario', "labels.pickle").format(args.prob, mu, sigma), "rb") as fr:
         y_raw_data = pickle.load(fr)
 
-    data = get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args)
-    get_obj_graph(data)
-
-    size_reduced = 27
-    decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
-
-    read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
-                                 target_labels=np.arange(decoder_weights_sa.shape[0]),
-                                 alpha=decoder_weights_sa)
+    # data = get_obj_list(y_raw_data, pred_cut_ex, mu, sigma, args)
+    # get_obj_graph(data)
+    #
+    # size_reduced = 27
+    # decoder_weights_sa = decoder_weights_sa[:size_reduced, :size_reduced]
+    #
+    # read_plot_alignment_matrices(source_labels=np.arange(decoder_weights_sa.shape[1]),
+    #                              target_labels=np.arange(decoder_weights_sa.shape[0]),
+    #                              alpha=decoder_weights_sa)
 
     if args.prob == "ProductionPlanning":
         num_var = 3

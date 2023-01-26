@@ -28,10 +28,15 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
     else:
         raise NotImplementedError
 
+    if args.model == "transformer":
+        model_name = "TranSDDP"
+    else:
+        model_name = "TranSDDP-Decoder"
+
     fig, ax = plt.subplots(3, 2, figsize=(16, 24), sharex='all', sharey='row')
     for stage in range((len(target_cut))//2):
         ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (TranSDDP)".format(stage), size=14)
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} ({})".format(stage, model_name), size=14)
         ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
         ax[int(stage % ax.shape[0]), 1].set_title("stage{} (SDDP)".format(stage), size=14)
 
@@ -59,7 +64,7 @@ def get_cut_graph(target_cut, pred_cut, var_idx, args, save_path):
 
     for stage in range((len(target_cut))//2, len(target_cut)):
         ax[int(stage % ax.shape[0]), 0].grid(color="gray", alpha=0.5, linestyle="--")
-        ax[int(stage % ax.shape[0]), 0].set_title("stage{} (TranSDDP)".format(stage), size=14)
+        ax[int(stage % ax.shape[0]), 0].set_title("stage{} ({})".format(stage, model_name), size=14)
         ax[int(stage % ax.shape[0]), 1].grid(color="gray", alpha=0.5, linestyle="--")
         ax[int(stage % ax.shape[0]), 1].set_title("stage{} (SDDP)".format(stage), size=14)
 
